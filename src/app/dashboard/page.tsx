@@ -884,7 +884,7 @@ export default function Dashboard() {
                       <div className="w-8 h-8 bg-emerald-50 rounded-lg flex items-center justify-center text-emerald-500">
                         <CheckCircle size={16} />
                       </div>
-                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Selesai</span>
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Finish</span>
                     </div>
                     <p className="text-2xl font-bold text-black">{stats.done}</p>
                   </div>
@@ -954,7 +954,7 @@ export default function Dashboard() {
                               strokeWidth={2}
                               fillOpacity={1}
                               fill="transparent"
-                              name="Selesai"
+                              name="Finish"
                             />
                             <Area
                               type="monotone"
@@ -997,7 +997,7 @@ export default function Dashboard() {
                         <div className="mt-6 space-y-5">
                           <div>
                             <div className="flex justify-between text-[10px] font-bold uppercase tracking-widest mb-2">
-                              <span className="text-emerald-600">Selesai ({stats.done})</span>
+                              <span className="text-emerald-600">Finish ({stats.done})</span>
                               <span>{Math.round((stats.done / (stats.total || 1)) * 100)}%</span>
                             </div>
                             <div className="h-1.5 w-full bg-slate-50 rounded-full overflow-hidden">
