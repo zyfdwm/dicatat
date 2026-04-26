@@ -87,7 +87,7 @@ export default function LandingPage() {
           </div>
 
           <h1 className="text-4xl md:text-7xl font-extrabold tracking-tighter leading-[1.05] max-w-4xl mb-8 animate-in fade-in slide-in-from-bottom-6 duration-1000 delay-150">
-            Kelola Project & Invoice<br className="hidden md:block" />
+            Kelola Project & Invoice <br className="hidden md:block" />
             Jadi makin mudah
           </h1>
 

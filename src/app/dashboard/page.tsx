@@ -249,7 +249,7 @@ export default function Dashboard() {
   const calculateEarnedAmount = (p: Project) => {
     const b = getPaymentBreakdownForProject(p);
     if (b.type === "FULL") {
-      return (p.isPaid || p.status === "Done") ? b.total : 0;
+      return (p.isPaid || getProjectStatus(p) === "Finish") ? b.total : 0;
     }
     if (b.type === "DP") {
       let earned = 0;
@@ -279,7 +279,6 @@ export default function Dashboard() {
 
     await updateDoc(doc(db, "projects", projectId), {
       paidTermins: newPaidTermins,
-      status: isAllPaid ? "Done" : (project.status === "Done" ? "Ongoing" : project.status)
     });
   };
 
@@ -291,7 +290,6 @@ export default function Dashboard() {
     await updateDoc(doc(db, "projects", projectId), {
       isPaid: newPaid,
       fullProof: newPaid ? (proof || "bukti_full.pdf") : undefined,
-      status: newPaid ? "Done" : (project.status === "Done" ? "Ongoing" : project.status)
     });
   };
 
@@ -304,7 +302,6 @@ export default function Dashboard() {
     await updateDoc(doc(db, "projects", projectId), {
       isDPPaid: newDPPaid,
       dpProof: newDPPaid ? (proof || "bukti_dp.pdf") : undefined,
-      status: isAllPaid ? "Done" : (project.status === "Done" ? "Ongoing" : project.status)
     });
   };
 
@@ -317,7 +314,6 @@ export default function Dashboard() {
     await updateDoc(doc(db, "projects", projectId), {
       isRemainingPaid: newRemPaid,
       remainingProof: newRemPaid ? (proof || "bukti_pelunasan.pdf") : undefined,
-      status: isAllPaid ? "Done" : (project.status === "Done" ? "Ongoing" : project.status)
     });
   };
 
@@ -412,25 +408,33 @@ export default function Dashboard() {
     }
   };
 
-  const updateProjectStatus = async (id: string, newStatus: string) => {
-    try {
-      await updateDoc(doc(db, "projects", id), { status: newStatus });
-    } catch (e) {
-      console.error("Error updating status", e);
+  const getProjectStatus = (p: Project) => {
+    const b = getPaymentBreakdownForProject(p);
+
+    if (b.type === "DP") {
+      if (p.isDPPaid && p.isRemainingPaid) return "Finish";
+      return "DP/Down Payment";
     }
+
+    if (b.type === "TERMIN") {
+      const paidCount = p.paidTermins?.length || 0;
+      if (paidCount === b.count) return "Finish";
+      if (paidCount > 0) return `Termin ${paidCount}`;
+      return "Ongoing";
+    }
+
+    if (p.isPaid) return "Finish";
+    return "Ongoing";
   };
 
   const getStatusColor = (status: string) => {
-    switch (status) {
-      case "Done": return "bg-emerald-50 text-emerald-700 border border-emerald-100";
-      case "Ongoing": return "bg-amber-50 text-amber-700 border border-amber-100";
-      case "Not Started": return "bg-slate-50 text-slate-500 border border-slate-100";
-      default: return "bg-slate-100 text-slate-600";
-    }
+    if (status === "Finish") return "bg-emerald-50 text-emerald-700 border border-emerald-100";
+    if (status === "Ongoing") return "bg-amber-50 text-amber-700 border border-amber-100";
+    if (status.includes("Termin") || status.includes("DP")) return "bg-blue-50 text-blue-700 border border-blue-100";
+    return "bg-slate-50 text-slate-500 border border-slate-100";
   };
 
   const getChartData = () => {
-    // Get last 6 months
     const last6Months = Array.from({ length: 6 }).map((_, i) => {
       const d = new Date();
       d.setMonth(d.getMonth() - (5 - i));
@@ -456,9 +460,10 @@ export default function Dashboard() {
           dataPoint.projects += 1;
           const priceVal = parsePrice(p.price);
           dataPoint.revenue += priceVal;
-          if (p.status === "Done") {
+          const currentStatus = getProjectStatus(p);
+          if (currentStatus === "Finish") {
             dataPoint.completed += 1;
-          } else if (p.status === "Ongoing") {
+          } else {
             dataPoint.onGoing += 1;
           }
         }
@@ -472,8 +477,8 @@ export default function Dashboard() {
 
   const stats = {
     total: projects.length,
-    done: projects.filter(p => p.status === "Done").length,
-    onGoing: projects.filter(p => p.status === "Ongoing").length,
+    done: projects.filter(p => getProjectStatus(p) === "Finish").length,
+    onGoing: projects.filter(p => getProjectStatus(p) !== "Finish").length,
     totalRevenue: projects.reduce((acc, p) => acc + parsePrice(p.price), 0),
     earnedRevenue: projects.reduce((acc, p) => acc + calculateEarnedAmount(p), 0),
   };
@@ -482,8 +487,13 @@ export default function Dashboard() {
 
   // Reusable Document Preview component
   const InvoicePaper = () => (
-    <div className="max-w-[210mm] mx-auto bg-white shadow-xl print-paper text-slate-900 text-[15px] leading-relaxed print:shadow-none print:max-w-none font-sans print:font-sans overflow-hidden">
-      <div className="p-10 md:p-16 print:p-16 flex flex-col min-h-[inherit]">
+    <div className="max-w-[210mm] mx-auto bg-white shadow-xl print-paper text-slate-900 text-[15px] leading-relaxed print:shadow-none print:max-w-none font-sans print:font-sans relative">
+      {/* Watermark Logo */}
+      <div className="absolute top-[-60px] left-6 opacity-[0.08] pointer-events-none select-none">
+        <img src="/watermark.png" alt="Watermark" className="w-72 object-contain grayscale brightness-0 invert-0" />
+      </div>
+
+      <div className="p-10 md:p-16 print:p-16 flex flex-col min-h-[inherit] relative z-10">
         <div className="flex justify-between items-start mb-10">
           <div>
             <h1 className="text-4xl font-bold tracking-tighter mb-2 uppercase">Invoice</h1>
@@ -655,8 +665,13 @@ export default function Dashboard() {
   );
 
   const DocumentPaper = () => (
-    <div className="max-w-[210mm] mx-auto bg-white shadow-xl print-paper text-slate-900 text-[14px] leading-relaxed print:shadow-none print:max-w-none font-sans print:font-sans overflow-hidden">
-      <div className="p-8 md:p-12 print:p-12 flex flex-col min-h-[inherit]">
+    <div className="max-w-[210mm] mx-auto bg-white shadow-xl print-paper text-slate-900 text-[14px] leading-relaxed print:shadow-none print:max-w-none font-sans print:font-sans relative">
+      {/* Watermark Logo */}
+      <div className="absolute top-[-70px] left-4 opacity-[0.05] pointer-events-none select-none">
+        <img src="/watermark.png" alt="Watermark" className="w-72 object-contain grayscale brightness-0 invert-0" />
+      </div>
+
+      <div className="p-8 md:p-12 print:p-12 flex flex-col min-h-[inherit] relative z-10">
         {/* Header */}
         <div className="text-center mb-6">
           <h2 className="text-base md:text-lg font-bold uppercase tracking-wide mb-1 text-black">Surat Perjanjian Kerja Sama</h2>
@@ -708,7 +723,7 @@ export default function Dashboard() {
           <section>
             <h3 className="font-bold mb-2 text-black">PASAL 1 - RUANG LINGKUP PEKERJAAN</h3>
             <p>
-              <b>PIHAK PERTAMA</b> memberikan tugas kepada <b>PIHAK KEDUA</b>, dan <b>PIHAK KEDUA</b> menyatakan bersedia menerima tugas tersebut untuk melaksanakan pekerjaan berupa <strong>{formData.projectName || "[Nama Project]"}</strong>. Detail rincian deskripsi pekerjaan yang akan diselesaikan adalah sebagai berikut:
+              <b>PIHAK PERTAMA</b> memberikan tugas kepada <b>PIHAK KEDUA</b>, dan <b>PIHAK KEDUA</b> menyatakan bersedia menerima tugas tersebut untuk mengerjakan <strong>{formData.projectName || "[Nama Project]"}</strong>. Dengan detail pekerjaan sebagai berikut:
             </p>
             {formData.description ? (
               <ul className="list-disc pl-6 mt-3 mb-2 space-y-1.5 text-slate-900">
@@ -724,24 +739,41 @@ export default function Dashboard() {
           <section>
             <h3 className="font-bold mb-2 text-black">PASAL 2 - JANGKA WAKTU & STATUS PEKERJAAN</h3>
             <p>
-              Pekerjaan ini disepakati untuk dikerjakan dalam jangka waktu <strong>{formData.duration || "[Lama Pekerjaan]"}</strong> sejak dimulainya proyek. Saat dokumen ini dicetak, dan proyek sedang dalam status <strong>{formData.status}</strong>.
+              Project ini disepakati dan dikerjakan dalam jangka waktu <strong>{formData.duration || "[Lama Pekerjaan]"}</strong>. Dengan pembayaran <strong>
+                {(() => {
+                  const b = getPaymentBreakdown();
+                  if (b.type === "DP") {
+                    return (
+                      <span>Down Payment (DP)</span>
+                    );
+                  }
+                  if (b.type === "TERMIN") {
+                    return (
+                      <span>Pembayaran Bertahap (Termin)</span>
+                    );
+                  }
+                  return (
+                    <span>secara penuh (Full Payment)</span>
+                  );
+                })()}
+              </strong>.
             </p>
           </section>
 
           <section>
             <h3 className="font-bold mb-2 text-black uppercase text-xs tracking-wider">PASAL 3 - NILAI PEKERJAAN & PEMBAYARAN</h3>
             <p>
-              Kedua belah pihak sepakat bahwa nilai total imbalan atas pekerjaan ini adalah sebesar <strong>Rp {formData.price || "[Harga Pekerjaan]"}</strong>. Pembayaran akan dilakukan
+              Kedua belah pihak sepakat bahwa nilai project ini adalah <strong>Rp {formData.price || "[Harga]"}</strong>. Pembayaran dilakukan
               {(() => {
                 const b = getPaymentBreakdown();
                 if (b.type === "DP") {
                   return (
-                    <span> dengan sistem <strong>Down Payment (DP)</strong> sebesar <strong>{b.percent} (Rp {formatPrice(b.dp)})</strong> sebagai tanda jadi, dan sisa pelunasan sebesar <strong>Rp {formatPrice(b.remaining)}</strong> akan dibayarkan setelah seluruh pekerjaan dinyatakan selesai.</span>
+                    <span> dengan <strong>Down Payment (DP)</strong> sebesar <strong>{b.percent} (Rp {formatPrice(b.dp)})</strong> sebagai tanda jadi, dan sisa pelunasan sebesar <strong>Rp {formatPrice(b.remaining)}</strong> akan dibayarkan setelah seluruh pekerjaan selesai.</span>
                   );
                 }
                 if (b.type === "TERMIN") {
                   return (
-                    <span> dengan sistem <strong>Pembayaran Bertahap (Termin)</strong> sebanyak <strong>{b.count} kali</strong> pembayaran, dengan nilai per termin sebesar <strong>Rp {formatPrice(b.perTermin)}</strong> yang dibayarkan sesuai jadwal yang disepakati.</span>
+                    <span> secara <strong> Bertahap (Termin)</strong> sebanyak <strong>{b.count} kali</strong> pembayaran, dengan nilai per termin sebesar <strong>Rp {formatPrice(b.perTermin)}</strong> yang dibayarkan sesuai jadwal yang disepakati.</span>
                   );
                 }
                 return (
@@ -754,7 +786,7 @@ export default function Dashboard() {
           <section>
             <h3 className="font-bold mb-2 text-black">PASAL 4 - PENUTUP</h3>
             <p>
-              Demikian Surat Perjanjian Kerja Sama ini dibuat dalam keadaan sadar, tanpa ada paksaan dari pihak manapun, dan disepakati bersama oleh kedua belah pihak. Perjanjian ini berlaku sejak tanggal ditandatangani.
+              Demikian Surat Perjanjian Kerja Sama ini dibuat dalam keadaan sadar, tanpa ada paksaan dari pihak manapun, dan disepakati oleh kedua belah pihak.
             </p>
           </section>
         </div>
@@ -783,8 +815,8 @@ export default function Dashboard() {
         <header className="border-b border-slate-200 bg-white sticky top-0 z-30">
           <div className="max-w-6xl mx-auto px-6 h-16 md:h-20 flex justify-between items-center">
             <Link href="/" className="flex items-center gap-3 group">
-              <div className="w-8 h-8 bg-black text-white flex items-center justify-center rounded transition-transform group-hover:rotate-3">
-                <span className="font-bold text-sm tracking-tighter">D.</span>
+              <div className="w-8 h-8 bg-black text-white flex items-center justify-center rounded transition-transform group-hover:rotate-3 overflow-hidden">
+                <img src="/watermark.png" alt="Logo" className="w-full h-full object-cover grayscale brightness-0 invert" />
               </div>
               <span className="text-xl font-bold tracking-tight">Dicatat</span>
             </Link>
@@ -846,7 +878,7 @@ export default function Dashboard() {
                     </div>
                     <p className="text-2xl font-bold text-black">{stats.total}</p>
                   </div>
-  
+
                   <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
                     <div className="flex items-center gap-3 mb-3">
                       <div className="w-8 h-8 bg-emerald-50 rounded-lg flex items-center justify-center text-emerald-500">
@@ -856,7 +888,7 @@ export default function Dashboard() {
                     </div>
                     <p className="text-2xl font-bold text-black">{stats.done}</p>
                   </div>
-  
+
                   <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
                     <div className="flex items-center gap-3 mb-3">
                       <div className="w-8 h-8 bg-amber-50 rounded-lg flex items-center justify-center text-amber-500">
@@ -866,7 +898,7 @@ export default function Dashboard() {
                     </div>
                     <p className="text-2xl font-bold text-black">{stats.onGoing}</p>
                   </div>
-  
+
                   <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
                     <div className="flex items-center gap-3 mb-3">
                       <div className="w-8 h-8 bg-black rounded-lg flex items-center justify-center text-white">
@@ -877,7 +909,7 @@ export default function Dashboard() {
                     <p className="text-2xl font-bold text-black">Rp {formatPrice(stats.totalRevenue)}</p>
                   </div>
                 </div>
-  
+
                 {/* Chart Section */}
                 {projects.length > 0 && (
                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-12">
@@ -947,7 +979,7 @@ export default function Dashboard() {
                         </ResponsiveContainer>
                       </div>
                     </div>
-  
+
                     <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm flex flex-col">
                       <div className="flex justify-between items-center mb-6">
                         <div>
@@ -988,7 +1020,7 @@ export default function Dashboard() {
                 )}
               </div>
             )}
-  
+
             {dashboardTab === "PROJECT" && (
               <div>
                 {projects.length === 0 ? (
@@ -1014,58 +1046,35 @@ export default function Dashboard() {
                       <div key={project.id} className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm hover:shadow-md transition-all flex flex-col group relative">
                         <div className="flex justify-between items-start mb-6">
                           <div className="relative">
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setOpenDropdownId(openDropdownId === project.id ? null : project.id);
-                              }}
-                              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-[10px] font-bold uppercase tracking-wider transition-all border ${getStatusColor(project.status)}`}
+                            <div
+                              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-[10px] font-bold uppercase tracking-wider transition-all border ${getStatusColor(getProjectStatus(project))}`}
                             >
-                              {project.status}
-                              <ChevronDown size={12} className={`transition-transform duration-200 ${openDropdownId === project.id ? "rotate-180" : ""}`} />
-                            </button>
-  
-                            {openDropdownId === project.id && (
-                              <div className="absolute top-full left-0 mt-2 w-40 bg-white border border-slate-200 rounded-xl shadow-xl z-50 py-2 animate-in fade-in slide-in-from-top-2 duration-200">
-                                {["Not Started", "Ongoing", "Done"].map((status) => (
-                                  <button
-                                    key={status}
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      updateProjectStatus(project.id, status);
-                                      setOpenDropdownId(null);
-                                    }}
-                                    className={`w-full text-left px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider transition-colors hover:bg-slate-50 ${project.status === status ? "text-black" : "text-slate-400"}`}
-                                  >
-                                    {status}
-                                  </button>
-                                ))}
-                              </div>
-                            )}
+                              {getProjectStatus(project)}
+                            </div>
                           </div>
-                          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <button onClick={() => handleEdit(project)} className="text-slate-400 hover:text-black transition-colors p-1.5" title="Edit">
+                          <div className="flex items-center gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+                            <button onClick={() => handleEdit(project)} className="text-slate-400 hover:text-black transition-colors p-1.5 bg-slate-50 md:bg-transparent rounded-lg" title="Edit">
                               <Edit size={16} />
                             </button>
-                            <button onClick={() => handleDelete(project.id)} className="text-slate-400 hover:text-red-600 transition-colors p-1.5" title="Hapus">
+                            <button onClick={() => handleDelete(project.id)} className="text-slate-400 hover:text-red-600 transition-colors p-1.5 bg-slate-50 md:bg-transparent rounded-lg" title="Hapus">
                               <Trash2 size={16} />
                             </button>
                           </div>
                         </div>
-  
+
                         <h3 className="text-lg font-bold text-slate-900 line-clamp-1 mb-1 tracking-tight">{project.projectName || "Tanpa Nama"}</h3>
                         <p className="text-slate-500 text-sm mb-6 flex items-center gap-2">
                           <UserIcon size={14} className="text-slate-300" />
                           {project.clientName || "Client tidak diketahui"}
                         </p>
-  
+
                         <div className="mt-auto pt-6 border-t border-slate-100 flex justify-between items-end">
                           <div>
                             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Nilai Project</p>
                             <p className="font-bold text-slate-900 tracking-tight">Rp {project.price || "0"}</p>
                           </div>
                           <div className="flex items-center gap-3">
-                            {project.status === "Done" && (
+                            {getProjectStatus(project) === "Finish" && (
                               <button
                                 onClick={() => handleInvoice(project)}
                                 className="text-emerald-600 hover:text-emerald-700 text-sm font-bold flex items-center gap-1 transition-colors"
@@ -1129,7 +1138,7 @@ export default function Dashboard() {
                 <ReceiptText size={32} />
               </div>
               <p className="text-slate-500 mb-8 max-w-sm mx-auto text-sm leading-relaxed">
-                Belum ada project yang bisa ditagih. Pastikan status sudah <b>Done</b> atau project memiliki metode <b>DP/Termin</b> untuk tagihan awal.
+                Belum ada project yang bisa ditagih. Pastikan status sudah <b>Finish</b> atau project memiliki metode <b>DP/Termin</b> untuk tagihan awal.
               </p>
               <button
                 onClick={() => setView("LIST")}
@@ -1177,149 +1186,149 @@ export default function Dashboard() {
 
                               {/* 1. Down Payment Row */}
                               <div className="flex flex-col p-4 bg-white border border-slate-100 rounded-xl relative overflow-hidden">
-                                 <div className="flex flex-row md:items-center justify-between gap-4">
-                                   <div>
-                                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Tahap 1: Uang Muka</p>
-                                     <p className="text-sm font-bold text-slate-800">DP {project.paymentDetails || "___"}</p>
-                                   </div>
-                                   <div className="flex items-center gap-3">
-                                     {project.isDPPaid ? (
-                                       <div className="flex items-center gap-2">
-                                         <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 text-emerald-600 rounded-lg border border-emerald-100">
-                                           <CheckCircle size={14} />
-                                           <span className="text-xs font-bold uppercase tracking-wider">Paid</span>
-                                         </div>
-                                         <button
-                                           onClick={(e) => { 
-                                             e.stopPropagation(); 
-                                             if (project.dpProof) {
-                                               window.open(project.dpProof, "_blank");
-                                             } else {
-                                               alert("Bukti transfer tidak ditemukan. Silakan upload ulang.");
-                                             }
-                                           }}
-                                           className="w-10 h-10 flex items-center justify-center text-slate-400 hover:text-black transition-colors cursor-pointer"
-                                           title="Lihat Bukti"
-                                         >
-                                           <Eye size={18} />
-                                         </button>
-                                       </div>
-                                     ) : (
-                                       <div className="flex flex-wrap items-center gap-2">
-                                         <button
-                                           onClick={() => handlePrintDP(project, "DP")}
-                                           className="w-10 h-10 flex items-center justify-center bg-black text-white rounded-lg hover:bg-slate-800 transition-colors"
-                                           title="Cetak Invoice DP"
-                                         >
-                                           <Printer size={16} />
-                                         </button>
-                                         <UploadButton
-                                           endpoint="proofUploader"
-                                           onUploadProgress={(p) => setUploadingProgress(prev => ({ ...prev, [`${project.id}-dp`]: p }))}
-                                           onClientUploadComplete={(res: any[]) => {
-                                             setUploadingProgress(prev => {
-                                               const next = { ...prev };
-                                               delete next[`${project.id}-dp`];
-                                               return next;
-                                             });
-                                             if (res?.[0]) handleDPPaid(project.id, res[0].url);
-                                           }}
-                                           onUploadError={(err: Error) => {
-                                             setUploadingProgress(prev => {
-                                               const next = { ...prev };
-                                               delete next[`${project.id}-dp`];
-                                               return next;
-                                             });
-                                             alert(err.message);
-                                           }}
-                                           content={{ button: <Upload size={16} />, allowedContent: null }}
-                                           appearance={{
-                                             button: "p-0 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors after:hidden focus-within:ring-0 w-10 h-10 flex items-center justify-center text-[0px] [&_*]:text-[0px]",
-                                             allowedContent: "hidden",
-                                             container: "w-10 h-10"
-                                           }}
-                                         />
-                                       </div>
-                                     )}
-                                   </div>
-                                 </div>
-                                 {uploadingProgress[`${project.id}-dp`] !== undefined && (
-                                   <div className="absolute bottom-0 left-0 h-1 bg-emerald-500 transition-all duration-300" style={{ width: `${uploadingProgress[`${project.id}-dp`]}%` }} />
-                                 )}
-                               </div>
+                                <div className="flex flex-row md:items-center justify-between gap-4">
+                                  <div>
+                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Tahap 1: Uang Muka</p>
+                                    <p className="text-sm font-bold text-slate-800">DP {project.paymentDetails || "___"}</p>
+                                  </div>
+                                  <div className="flex items-center gap-3">
+                                    {project.isDPPaid ? (
+                                      <div className="flex items-center gap-2">
+                                        <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 text-emerald-600 rounded-lg border border-emerald-100">
+                                          <CheckCircle size={14} />
+                                          <span className="text-xs font-bold uppercase tracking-wider">Paid</span>
+                                        </div>
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            if (project.dpProof) {
+                                              window.open(project.dpProof, "_blank");
+                                            } else {
+                                              alert("Bukti transfer tidak ditemukan. Silakan upload ulang.");
+                                            }
+                                          }}
+                                          className="w-10 h-10 flex items-center justify-center text-slate-400 hover:text-black transition-colors cursor-pointer"
+                                          title="Lihat Bukti"
+                                        >
+                                          <Eye size={18} />
+                                        </button>
+                                      </div>
+                                    ) : (
+                                      <div className="flex flex-wrap items-center gap-2">
+                                        <button
+                                          onClick={() => handlePrintDP(project, "DP")}
+                                          className="w-10 h-10 flex items-center justify-center bg-black text-white rounded-lg hover:bg-slate-800 transition-colors"
+                                          title="Cetak Invoice DP"
+                                        >
+                                          <Printer size={16} />
+                                        </button>
+                                        <UploadButton
+                                          endpoint="proofUploader"
+                                          onUploadProgress={(p) => setUploadingProgress(prev => ({ ...prev, [`${project.id}-dp`]: p }))}
+                                          onClientUploadComplete={(res: any[]) => {
+                                            setUploadingProgress(prev => {
+                                              const next = { ...prev };
+                                              delete next[`${project.id}-dp`];
+                                              return next;
+                                            });
+                                            if (res?.[0]) handleDPPaid(project.id, res[0].url);
+                                          }}
+                                          onUploadError={(err: Error) => {
+                                            setUploadingProgress(prev => {
+                                              const next = { ...prev };
+                                              delete next[`${project.id}-dp`];
+                                              return next;
+                                            });
+                                            alert(err.message);
+                                          }}
+                                          content={{ button: <Upload size={16} />, allowedContent: null }}
+                                          appearance={{
+                                            button: "p-0 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors after:hidden focus-within:ring-0 w-10 h-10 flex items-center justify-center text-[0px] [&_*]:text-[0px]",
+                                            allowedContent: "hidden",
+                                            container: "w-10 h-10"
+                                          }}
+                                        />
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                                {uploadingProgress[`${project.id}-dp`] !== undefined && (
+                                  <div className="absolute bottom-0 left-0 h-1 bg-emerald-500 transition-all duration-300" style={{ width: `${uploadingProgress[`${project.id}-dp`]}%` }} />
+                                )}
+                              </div>
 
                               {/* 2. Remaining Payment Row */}
                               <div className="flex flex-col p-4 bg-white border border-slate-100 rounded-xl relative overflow-hidden">
-                                 <div className="flex flex-row md:items-center justify-between gap-4">
-                                   <div>
-                                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Tahap 2: Pelunasan</p>
-                                     <p className="text-sm font-bold text-slate-800">Sisa Pembayaran (Full)</p>
-                                   </div>
-                                   <div className="flex items-center gap-3">
-                                     {project.isRemainingPaid ? (
-                                       <div className="flex items-center gap-2">
-                                         <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 text-emerald-600 rounded-lg border border-emerald-100">
-                                           <CheckCircle size={14} />
-                                           <span className="text-xs font-bold uppercase tracking-wider">Paid</span>
-                                         </div>
-                                         <button
-                                           onClick={(e) => { 
-                                             e.stopPropagation(); 
-                                             if (project.remainingProof) {
-                                               window.open(project.remainingProof, "_blank");
-                                             } else {
-                                               alert("Bukti transfer tidak ditemukan. Silakan upload ulang.");
-                                             }
-                                           }}
-                                           className="w-10 h-10 flex items-center justify-center text-slate-400 hover:text-black transition-colors cursor-pointer"
-                                           title="Lihat Bukti"
-                                         >
-                                           <Eye size={18} />
-                                         </button>
-                                       </div>
-                                     ) : (
-                                       <div className="flex flex-wrap items-center gap-2">
-                                         <button
-                                           onClick={() => handlePrintDP(project, "REMAINING")}
-                                           className="w-10 h-10 flex items-center justify-center bg-black text-white rounded-lg hover:bg-slate-800 transition-colors"
-                                           title="Cetak Pelunasan"
-                                         >
-                                           <Printer size={16} />
-                                         </button>
-                                         <UploadButton
-                                           endpoint="proofUploader"
-                                           onUploadProgress={(p) => setUploadingProgress(prev => ({ ...prev, [`${project.id}-rem`]: p }))}
-                                           onClientUploadComplete={(res: any[]) => {
-                                             setUploadingProgress(prev => {
-                                               const next = { ...prev };
-                                               delete next[`${project.id}-rem`];
-                                               return next;
-                                             });
-                                             if (res?.[0]) handleRemainingPaid(project.id, res[0].url);
-                                           }}
-                                           onUploadError={(err: Error) => {
-                                             setUploadingProgress(prev => {
-                                               const next = { ...prev };
-                                               delete next[`${project.id}-rem`];
-                                               return next;
-                                             });
-                                             alert(err.message);
-                                           }}
-                                           content={{ button: <Upload size={16} />, allowedContent: null }}
-                                           appearance={{
-                                             button: "p-0 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors after:hidden focus-within:ring-0 w-10 h-10 flex items-center justify-center text-[0px] [&_*]:text-[0px]",
-                                             allowedContent: "hidden",
-                                             container: "w-10 h-10"
-                                           }}
-                                         />
-                                       </div>
-                                     )}
-                                   </div>
-                                 </div>
-                                 {uploadingProgress[`${project.id}-rem`] !== undefined && (
-                                   <div className="absolute bottom-0 left-0 h-1 bg-emerald-500 transition-all duration-300" style={{ width: `${uploadingProgress[`${project.id}-rem`]}%` }} />
-                                 )}
-                               </div>
+                                <div className="flex flex-row md:items-center justify-between gap-4">
+                                  <div>
+                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Tahap 2: Pelunasan</p>
+                                    <p className="text-sm font-bold text-slate-800">Sisa Pembayaran (Full)</p>
+                                  </div>
+                                  <div className="flex items-center gap-3">
+                                    {project.isRemainingPaid ? (
+                                      <div className="flex items-center gap-2">
+                                        <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 text-emerald-600 rounded-lg border border-emerald-100">
+                                          <CheckCircle size={14} />
+                                          <span className="text-xs font-bold uppercase tracking-wider">Paid</span>
+                                        </div>
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            if (project.remainingProof) {
+                                              window.open(project.remainingProof, "_blank");
+                                            } else {
+                                              alert("Bukti transfer tidak ditemukan. Silakan upload ulang.");
+                                            }
+                                          }}
+                                          className="w-10 h-10 flex items-center justify-center text-slate-400 hover:text-black transition-colors cursor-pointer"
+                                          title="Lihat Bukti"
+                                        >
+                                          <Eye size={18} />
+                                        </button>
+                                      </div>
+                                    ) : (
+                                      <div className="flex flex-wrap items-center gap-2">
+                                        <button
+                                          onClick={() => handlePrintDP(project, "REMAINING")}
+                                          className="w-10 h-10 flex items-center justify-center bg-black text-white rounded-lg hover:bg-slate-800 transition-colors"
+                                          title="Cetak Pelunasan"
+                                        >
+                                          <Printer size={16} />
+                                        </button>
+                                        <UploadButton
+                                          endpoint="proofUploader"
+                                          onUploadProgress={(p) => setUploadingProgress(prev => ({ ...prev, [`${project.id}-rem`]: p }))}
+                                          onClientUploadComplete={(res: any[]) => {
+                                            setUploadingProgress(prev => {
+                                              const next = { ...prev };
+                                              delete next[`${project.id}-rem`];
+                                              return next;
+                                            });
+                                            if (res?.[0]) handleRemainingPaid(project.id, res[0].url);
+                                          }}
+                                          onUploadError={(err: Error) => {
+                                            setUploadingProgress(prev => {
+                                              const next = { ...prev };
+                                              delete next[`${project.id}-rem`];
+                                              return next;
+                                            });
+                                            alert(err.message);
+                                          }}
+                                          content={{ button: <Upload size={16} />, allowedContent: null }}
+                                          appearance={{
+                                            button: "p-0 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors after:hidden focus-within:ring-0 w-10 h-10 flex items-center justify-center text-[0px] [&_*]:text-[0px]",
+                                            allowedContent: "hidden",
+                                            container: "w-10 h-10"
+                                          }}
+                                        />
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                                {uploadingProgress[`${project.id}-rem`] !== undefined && (
+                                  <div className="absolute bottom-0 left-0 h-1 bg-emerald-500 transition-all duration-300" style={{ width: `${uploadingProgress[`${project.id}-rem`]}%` }} />
+                                )}
+                              </div>
                             </div>
                           )}
 
@@ -1333,165 +1342,165 @@ export default function Dashboard() {
                                 const isPaid = !!terminItem;
 
                                 return (
-                                   <div key={num} className="flex flex-col p-4 bg-white border border-slate-100 rounded-xl relative overflow-hidden">
-                                     <div className="flex flex-row md:items-center justify-between gap-4">
-                                       <div className="flex items-center gap-3">
-                                         <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-black ${isPaid ? "bg-emerald-500 text-white" : "bg-slate-100 text-slate-400"}`}>
-                                           {num}
-                                         </div>
-                                         <div>
-                                           <p className="text-sm font-bold text-slate-800">Termin {num}</p>
-                                           <p className="text-[10px] text-slate-400 font-bold uppercase">Rp {formatPrice(b.perTermin)}</p>
-                                         </div>
-                                       </div>
- 
-                                       <div className="flex items-center gap-3">
-                                         {isPaid ? (
-                                           <div className="flex items-center gap-2">
-                                             <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 text-emerald-600 rounded-lg border border-emerald-100">
-                                               <CheckCircle size={14} />
-                                               <span className="text-xs font-bold uppercase tracking-wider">Paid</span>
-                                             </div>
-                                             <button
-                                               onClick={(e) => { 
-                                                 e.stopPropagation(); 
-                                                 if (terminItem.proof) {
-                                                   window.open(terminItem.proof, "_blank");
-                                                 } else {
-                                                   alert("Bukti transfer tidak ditemukan. Silakan upload ulang.");
-                                                 }
-                                               }}
-                                               className="w-10 h-10 flex items-center justify-center text-slate-400 hover:text-black transition-colors cursor-pointer"
-                                               title="Lihat Bukti"
-                                             >
-                                               <Eye size={18} />
-                                             </button>
-                                           </div>
-                                         ) : (
-                                           <div className="flex items-center gap-2">
-                                             <button
-                                               onClick={() => handlePrintTermin(project, num)}
-                                               className="w-10 h-10 flex items-center justify-center bg-black text-white rounded-lg hover:bg-slate-800 transition-colors"
-                                               title="Cetak Invoice"
-                                             >
-                                               <Printer size={16} />
-                                             </button>
-                                             <UploadButton
-                                               endpoint="proofUploader"
-                                               onUploadProgress={(p) => setUploadingProgress(prev => ({ ...prev, [`${project.id}-t-${num}`]: p }))}
-                                               onClientUploadComplete={(res: any[]) => {
-                                                 setUploadingProgress(prev => {
-                                                   const next = { ...prev };
-                                                   delete next[`${project.id}-t-${num}`];
-                                                   return next;
-                                                 });
-                                                 if (res?.[0]) toggleTerminPaid(project.id, num, res[0].url);
-                                               }}
-                                               onUploadError={(err: Error) => {
-                                                 setUploadingProgress(prev => {
-                                                   const next = { ...prev };
-                                                   delete next[`${project.id}-t-${num}`];
-                                                   return next;
-                                                 });
-                                                 alert(err.message);
-                                               }}
-                                               content={{ button: <Upload size={16} />, allowedContent: null }}
-                                               appearance={{
-                                                 button: "p-0 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors after:hidden focus-within:ring-0 w-10 h-10 flex items-center justify-center text-[0px] [&_*]:text-[0px]",
-                                                 allowedContent: "hidden",
-                                                 container: "w-10 h-10"
-                                               }}
-                                             />
-                                           </div>
-                                         )}
-                                       </div>
-                                     </div>
-                                     {uploadingProgress[`${project.id}-t-${num}`] !== undefined && (
-                                       <div className="absolute bottom-0 left-0 h-1 bg-emerald-500 transition-all duration-300" style={{ width: `${uploadingProgress[`${project.id}-t-${num}`]}%` }} />
-                                     )}
-                                   </div>
+                                  <div key={num} className="flex flex-col p-4 bg-white border border-slate-100 rounded-xl relative overflow-hidden">
+                                    <div className="flex flex-row md:items-center justify-between gap-4">
+                                      <div className="flex items-center gap-3">
+                                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-black ${isPaid ? "bg-emerald-500 text-white" : "bg-slate-100 text-slate-400"}`}>
+                                          {num}
+                                        </div>
+                                        <div>
+                                          <p className="text-sm font-bold text-slate-800">Termin {num}</p>
+                                          <p className="text-[10px] text-slate-400 font-bold uppercase">Rp {formatPrice(b.perTermin)}</p>
+                                        </div>
+                                      </div>
+
+                                      <div className="flex items-center gap-3">
+                                        {isPaid ? (
+                                          <div className="flex items-center gap-2">
+                                            <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 text-emerald-600 rounded-lg border border-emerald-100">
+                                              <CheckCircle size={14} />
+                                              <span className="text-xs font-bold uppercase tracking-wider">Paid</span>
+                                            </div>
+                                            <button
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                if (terminItem.proof) {
+                                                  window.open(terminItem.proof, "_blank");
+                                                } else {
+                                                  alert("Bukti transfer tidak ditemukan. Silakan upload ulang.");
+                                                }
+                                              }}
+                                              className="w-10 h-10 flex items-center justify-center text-slate-400 hover:text-black transition-colors cursor-pointer"
+                                              title="Lihat Bukti"
+                                            >
+                                              <Eye size={18} />
+                                            </button>
+                                          </div>
+                                        ) : (
+                                          <div className="flex items-center gap-2">
+                                            <button
+                                              onClick={() => handlePrintTermin(project, num)}
+                                              className="w-10 h-10 flex items-center justify-center bg-black text-white rounded-lg hover:bg-slate-800 transition-colors"
+                                              title="Cetak Invoice"
+                                            >
+                                              <Printer size={16} />
+                                            </button>
+                                            <UploadButton
+                                              endpoint="proofUploader"
+                                              onUploadProgress={(p) => setUploadingProgress(prev => ({ ...prev, [`${project.id}-t-${num}`]: p }))}
+                                              onClientUploadComplete={(res: any[]) => {
+                                                setUploadingProgress(prev => {
+                                                  const next = { ...prev };
+                                                  delete next[`${project.id}-t-${num}`];
+                                                  return next;
+                                                });
+                                                if (res?.[0]) toggleTerminPaid(project.id, num, res[0].url);
+                                              }}
+                                              onUploadError={(err: Error) => {
+                                                setUploadingProgress(prev => {
+                                                  const next = { ...prev };
+                                                  delete next[`${project.id}-t-${num}`];
+                                                  return next;
+                                                });
+                                                alert(err.message);
+                                              }}
+                                              content={{ button: <Upload size={16} />, allowedContent: null }}
+                                              appearance={{
+                                                button: "p-0 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors after:hidden focus-within:ring-0 w-10 h-10 flex items-center justify-center text-[0px] [&_*]:text-[0px]",
+                                                allowedContent: "hidden",
+                                                container: "w-10 h-10"
+                                              }}
+                                            />
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
+                                    {uploadingProgress[`${project.id}-t-${num}`] !== undefined && (
+                                      <div className="absolute bottom-0 left-0 h-1 bg-emerald-500 transition-all duration-300" style={{ width: `${uploadingProgress[`${project.id}-t-${num}`]}%` }} />
+                                    )}
+                                  </div>
                                 );
                               })}
                             </div>
                           )}
-                          
+
                           {/* Case: Full Payment */}
                           {!isTermin && !isDP && (
-                             <div className="flex flex-col p-4 bg-white border border-slate-100 rounded-xl relative overflow-hidden">
-                               <div className="flex flex-row md:items-center justify-between gap-4">
-                                 <div>
-                                   <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Pembayaran Penuh</p>
-                                   <p className="text-sm font-bold text-slate-800">Total Rp {project.price}</p>
-                                 </div>
-                                 <div className="flex items-center gap-3">
-                                     {project.isPaid ? (
-                                       <div className="flex items-center gap-2">
-                                         <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 text-emerald-600 rounded-lg border border-emerald-100 h-10">
-                                           <CheckCircle size={14} />
-                                           <span className="text-xs font-bold uppercase tracking-wider">Paid</span>
-                                         </div>
-                                         <button
-                                           onClick={(e) => { 
-                                             e.stopPropagation(); 
-                                             if (project.fullProof) {
-                                               window.open(project.fullProof, "_blank");
-                                             } else {
-                                               alert("Bukti transfer tidak ditemukan. Silakan upload ulang.");
-                                             }
-                                           }}
-                                           className="w-10 h-10 flex items-center justify-center text-slate-400 hover:text-black transition-colors cursor-pointer"
-                                           title="Lihat Bukti"
-                                         >
-                                           <Eye size={18} />
-                                         </button>
-                                       </div>
-                                     ) : (
-                                       <div className="flex flex-wrap items-center gap-2">
-                                         <button
-                                           onClick={() => {
-                                             setFormData(project);
-                                             setSelectedTermin(null);
-                                             setView("INVOICE");
-                                           }}
-                                           className="w-10 h-10 flex items-center justify-center bg-black text-white rounded-lg hover:bg-slate-800 transition-colors"
-                                           title="Cetak Invoice Full"
-                                         >
-                                           <Printer size={16} />
-                                         </button>
-                                         <UploadButton
-                                           endpoint="proofUploader"
-                                           onUploadProgress={(p) => setUploadingProgress(prev => ({ ...prev, [`${project.id}-full`]: p }))}
-                                           onClientUploadComplete={(res: any[]) => {
-                                             setUploadingProgress(prev => {
-                                               const next = { ...prev };
-                                               delete next[`${project.id}-full`];
-                                               return next;
-                                             });
-                                             if (res?.[0]) handleFullPaid(project.id, res[0].url);
-                                           }}
-                                           onUploadError={(err: Error) => {
-                                             setUploadingProgress(prev => {
-                                               const next = { ...prev };
-                                               delete next[`${project.id}-full`];
-                                               return next;
-                                             });
-                                             alert(err.message);
-                                           }}
-                                           content={{ button: <Upload size={16} />, allowedContent: null }}
-                                           appearance={{ 
-                                             button: "p-0 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors after:hidden focus-within:ring-0 w-10 h-10 flex items-center justify-center text-[0px] [&_*]:text-[0px]",
-                                             allowedContent: "hidden",
-                                             container: "w-10 h-10"
-                                           }}
-                                         />
-                                       </div>
-                                     )}
-                                 </div>
-                               </div>
-                               {uploadingProgress[`${project.id}-full`] !== undefined && (
-                                 <div className="absolute bottom-0 left-0 h-1 bg-emerald-500 transition-all duration-300" style={{ width: `${uploadingProgress[`${project.id}-full`]}%` }} />
-                               )}
-                             </div>
+                            <div className="flex flex-col p-4 bg-white border border-slate-100 rounded-xl relative overflow-hidden">
+                              <div className="flex flex-row md:items-center justify-between gap-4">
+                                <div>
+                                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Pembayaran Penuh</p>
+                                  <p className="text-sm font-bold text-slate-800">Total Rp {project.price}</p>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                  {project.isPaid ? (
+                                    <div className="flex items-center gap-2">
+                                      <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 text-emerald-600 rounded-lg border border-emerald-100 h-10">
+                                        <CheckCircle size={14} />
+                                        <span className="text-xs font-bold uppercase tracking-wider">Paid</span>
+                                      </div>
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          if (project.fullProof) {
+                                            window.open(project.fullProof, "_blank");
+                                          } else {
+                                            alert("Bukti transfer tidak ditemukan. Silakan upload ulang.");
+                                          }
+                                        }}
+                                        className="w-10 h-10 flex items-center justify-center text-slate-400 hover:text-black transition-colors cursor-pointer"
+                                        title="Lihat Bukti"
+                                      >
+                                        <Eye size={18} />
+                                      </button>
+                                    </div>
+                                  ) : (
+                                    <div className="flex flex-wrap items-center gap-2">
+                                      <button
+                                        onClick={() => {
+                                          setFormData(project);
+                                          setSelectedTermin(null);
+                                          setView("INVOICE");
+                                        }}
+                                        className="w-10 h-10 flex items-center justify-center bg-black text-white rounded-lg hover:bg-slate-800 transition-colors"
+                                        title="Cetak Invoice Full"
+                                      >
+                                        <Printer size={16} />
+                                      </button>
+                                      <UploadButton
+                                        endpoint="proofUploader"
+                                        onUploadProgress={(p) => setUploadingProgress(prev => ({ ...prev, [`${project.id}-full`]: p }))}
+                                        onClientUploadComplete={(res: any[]) => {
+                                          setUploadingProgress(prev => {
+                                            const next = { ...prev };
+                                            delete next[`${project.id}-full`];
+                                            return next;
+                                          });
+                                          if (res?.[0]) handleFullPaid(project.id, res[0].url);
+                                        }}
+                                        onUploadError={(err: Error) => {
+                                          setUploadingProgress(prev => {
+                                            const next = { ...prev };
+                                            delete next[`${project.id}-full`];
+                                            return next;
+                                          });
+                                          alert(err.message);
+                                        }}
+                                        content={{ button: <Upload size={16} />, allowedContent: null }}
+                                        appearance={{
+                                          button: "p-0 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors after:hidden focus-within:ring-0 w-10 h-10 flex items-center justify-center text-[0px] [&_*]:text-[0px]",
+                                          allowedContent: "hidden",
+                                          container: "w-10 h-10"
+                                        }}
+                                      />
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                              {uploadingProgress[`${project.id}-full`] !== undefined && (
+                                <div className="absolute bottom-0 left-0 h-1 bg-emerald-500 transition-all duration-300" style={{ width: `${uploadingProgress[`${project.id}-full`]}%` }} />
+                              )}
+                            </div>
                           )}
                         </div>
                       </div>
@@ -1673,7 +1682,7 @@ export default function Dashboard() {
             <div className="space-y-2">
               <label className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
                 <UserIcon size={14} />
-                Nama Client <span className="text-black ml-1">*</span>
+                Client <span className="text-black ml-1">*</span>
               </label>
               <input
                 type="text"
@@ -1728,7 +1737,8 @@ export default function Dashboard() {
                 value={formData.price}
                 onChange={handleChange}
                 placeholder="Misal: 5.000.000"
-                className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:border-black outline-none transition-all text-sm font-medium bg-[#FBFBFB]"
+                disabled={"id" in formData}
+                className={`w-full px-4 py-3 border border-slate-200 rounded-lg focus:border-black outline-none transition-all text-sm font-medium bg-[#FBFBFB] ${"id" in formData ? "opacity-60 cursor-not-allowed" : ""}`}
               />
             </div>
 
@@ -1743,7 +1753,8 @@ export default function Dashboard() {
                   name="paymentMethod"
                   value={formData.paymentMethod}
                   onChange={handleChange}
-                  className="w-full px-3 py-2.5 border border-slate-200 rounded-lg focus:border-black outline-none transition-all text-sm font-bold bg-white"
+                  disabled={"id" in formData}
+                  className={`w-full px-3 py-2.5 border border-slate-200 rounded-lg focus:border-black outline-none transition-all text-sm font-bold bg-white ${"id" in formData ? "opacity-60 cursor-not-allowed" : ""}`}
                 >
                   <option value="Pembayaran Penuh (Full Payment)">Full Payment</option>
                   <option value="Pembayaran Sebagian (Down Payment)">Down Payment</option>
@@ -1756,14 +1767,21 @@ export default function Dashboard() {
                   <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
                     Besaran DP & Ketentuan
                   </label>
-                  <input
-                    type="text"
-                    name="paymentDetails"
-                    value={formData.paymentDetails}
-                    onChange={handleChange}
-                    placeholder="Contoh: 30% di awal"
-                    className="w-full px-3 py-2.5 border border-slate-200 rounded-lg focus:border-black outline-none transition-all text-sm font-medium bg-white"
-                  />
+                  <div className="relative">
+                    <input
+                      type="text"
+                      name="paymentDetails"
+                      value={formData.paymentDetails.replace("%", "")}
+                      onChange={(e) => {
+                        const val = e.target.value.replace(/\D/g, "");
+                        setFormData((prev) => ({ ...prev, paymentDetails: val ? `${val}%` : "" }));
+                      }}
+                      placeholder="50"
+                      disabled={"id" in formData}
+                      className={`w-full px-3 py-2.5 border border-slate-200 rounded-lg focus:border-black outline-none transition-all text-sm font-medium bg-white pr-10 ${"id" in formData ? "opacity-60 cursor-not-allowed" : ""}`}
+                    />
+                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-sm">%</span>
+                  </div>
                 </div>
               )}
 
@@ -1778,7 +1796,8 @@ export default function Dashboard() {
                     value={formData.paymentDetails}
                     onChange={handleChange}
                     placeholder="Contoh: 3x Pembayaran"
-                    className="w-full px-3 py-2.5 border border-slate-200 rounded-lg focus:border-black outline-none transition-all text-sm font-medium bg-white"
+                    disabled={"id" in formData}
+                    className={`w-full px-3 py-2.5 border border-slate-200 rounded-lg focus:border-black outline-none transition-all text-sm font-medium bg-white ${"id" in formData ? "opacity-60 cursor-not-allowed" : ""}`}
                   />
                 </div>
               )}
@@ -1790,32 +1809,44 @@ export default function Dashboard() {
                 <Clock size={14} />
                 Durasi/Kontrak
               </label>
-              <input
-                type="text"
-                name="duration"
-                value={formData.duration}
-                onChange={handleChange}
-                placeholder="Misal: 2 Minggu"
-                className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:border-black outline-none transition-all text-sm font-medium bg-[#FBFBFB]"
-              />
+              <div className="flex gap-3">
+                <input
+                  type="number"
+                  value={formData.duration ? (formData.duration.split(" ")[0] || "") : ""}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    const unit = formData.duration ? (formData.duration.split(" ")[1] || "Bulan") : "Bulan";
+                    setFormData((prev) => ({ ...prev, duration: val ? `${val} ${unit}` : "" }));
+                  }}
+                  placeholder="1"
+                  className="w-24 px-4 py-3 border border-slate-200 rounded-lg focus:border-black outline-none transition-all text-sm font-medium bg-[#FBFBFB]"
+                />
+                <select
+                  value={formData.duration ? (formData.duration.split(" ")[1] || "Bulan") : "Bulan"}
+                  onChange={(e) => {
+                    const val = formData.duration ? (formData.duration.split(" ")[0] || "1") : "1";
+                    const unit = e.target.value;
+                    setFormData((prev) => ({ ...prev, duration: `${val} ${unit}` }));
+                  }}
+                  className="flex-1 px-4 py-3 border border-slate-200 rounded-lg focus:border-black outline-none transition-all text-sm font-bold bg-[#FBFBFB]"
+                >
+                  <option value="Hari">Hari</option>
+                  <option value="Minggu">Minggu</option>
+                  <option value="Bulan">Bulan</option>
+                </select>
+              </div>
             </div>
 
-            {/* Status */}
+            {/* Status (Read Only) */}
             <div className="space-y-2">
               <label className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
                 <CheckCircle size={14} />
-                Status Pekerjaan
+                Status
               </label>
-              <select
-                name="status"
-                value={formData.status}
-                onChange={handleChange}
-                className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:border-black outline-none transition-all text-sm font-bold bg-[#FBFBFB]"
-              >
-                <option value="Not Started">Not Started</option>
-                <option value="Ongoing">Ongoing</option>
-                <option value="Done">Done</option>
-              </select>
+              <div className={`w-full px-4 py-3 border border-slate-200 rounded-lg text-sm font-bold bg-slate-50 flex items-center justify-between`}>
+                <span>{getProjectStatus(formData as Project)}</span>
+                {/* <span className="text-[9px] text-slate-400 font-normal uppercase tracking-widest italic">Otomatis</span> */}
+              </div>
             </div>
 
             {/* Description */}
