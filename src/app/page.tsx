@@ -124,9 +124,9 @@ export default function LandingPage() {
               <div className="w-2.5 h-2.5 rounded-full bg-slate-200"></div>
             </div>
             {/* Fake App Layout */}
-            <div className="flex flex-col md:flex-row h-[720px] sm:h-[800px] md:h-[500px]">
+            <div className="flex flex-col md:flex-row h-auto md:h-[500px]">
               {/* Sidebar (Form Mockup) */}
-              <div className="w-full md:w-80 border-b md:border-b-0 md:border-r border-slate-100 p-8 md:p-6 flex flex-col gap-6 md:gap-5 bg-white shrink-0">
+              <div className="w-full md:w-80 md:border-r border-slate-100 p-8 md:p-6 flex flex-col gap-6 md:gap-5 bg-white shrink-0">
                 <div className="space-y-4">
                   <div className="space-y-1.5">
                     <div className="h-2 w-20 bg-slate-200 rounded"></div>
@@ -157,7 +157,7 @@ export default function LandingPage() {
               </div>
 
               {/* Document Preview (Realistic SPK) */}
-              <div className="flex-1 bg-slate-50 p-6 md:p-10 flex justify-center items-start overflow-hidden relative">
+              <div className="hidden md:flex flex-1 bg-slate-50 p-6 md:p-10 justify-center items-start overflow-hidden relative">
                 <div className="absolute inset-0 bg-linear-to-b from-white via-transparent to-transparent opacity-50"></div>
 
                 <div className="w-full max-w-md bg-white shadow-[0_20px_60px_rgba(0,0,0,0.06)] border border-slate-200 p-8 md:p-10 flex flex-col scale-[0.85] sm:scale-95 md:scale-100 origin-top animate-in fade-in slide-in-from-bottom-4 duration-700">
