@@ -124,41 +124,43 @@ export default function LandingPage() {
               <div className="w-2.5 h-2.5 rounded-full bg-slate-200"></div>
             </div>
             {/* Fake App Layout */}
-            <div className="flex flex-col md:flex-row h-[300px] md:h-[500px]">
+            <div className="flex flex-col md:flex-row h-[720px] sm:h-[800px] md:h-[500px]">
               {/* Sidebar (Form Mockup) */}
-              <div className="w-full md:w-80 border-b md:border-b-0 md:border-r border-slate-100 p-6 flex flex-col gap-5 bg-white">
+              <div className="w-full md:w-80 border-b md:border-b-0 md:border-r border-slate-100 p-8 md:p-6 flex flex-col gap-6 md:gap-5 bg-white shrink-0">
                 <div className="space-y-4">
                   <div className="space-y-1.5">
                     <div className="h-2 w-20 bg-slate-200 rounded"></div>
-                    <div className="h-9 w-full bg-slate-50 border border-slate-100 rounded-lg flex items-center px-3 text-[10px] font-medium text-slate-400">
+                    <div className="h-11 w-full bg-slate-50 border border-slate-100 rounded-xl flex items-center px-4 text-xs font-medium text-slate-400">
                       Website Company Profile
                     </div>
                   </div>
                   <div className="space-y-1.5">
                     <div className="h-2 w-16 bg-slate-200 rounded"></div>
-                    <div className="h-9 w-full bg-slate-50 border border-slate-100 rounded-lg flex items-center px-3 text-[10px] font-medium text-slate-400">
+                    <div className="h-11 w-full bg-slate-50 border border-slate-100 rounded-xl flex items-center px-4 text-xs font-medium text-slate-400">
                       PT. Teknologi Maju
                     </div>
                   </div>
                   <div className="space-y-1.5">
                     <div className="h-2 w-24 bg-slate-200 rounded"></div>
-                    <div className="h-20 w-full bg-slate-50 border border-slate-100 rounded-lg p-3 text-[10px] font-medium text-slate-400 leading-relaxed">
+                    <div className="h-24 w-full bg-slate-50 border border-slate-100 rounded-xl p-4 text-xs font-medium text-slate-400 leading-relaxed">
                       - Desain UI/UX<br />
                       - Pengembangan Frontend<br />
                       - Integrasi API
                     </div>
                   </div>
                 </div>
-                <div className="mt-auto h-10 w-full bg-black rounded-lg flex items-center justify-center text-[11px] font-bold text-white tracking-tight">
-                  Simpan Project
+                <div className="mt-8 md:mt-auto">
+                  <div className="h-12 w-full bg-black rounded-xl flex items-center justify-center text-xs font-bold text-white tracking-tight shadow-lg shadow-black/10 hover:bg-slate-800 transition-all active:scale-[0.98]">
+                    Simpan Project
+                  </div>
                 </div>
               </div>
 
               {/* Document Preview (Realistic SPK) */}
-              <div className="flex-1 bg-slate-50 p-4 md:p-10 flex justify-center items-start overflow-hidden relative">
+              <div className="flex-1 bg-slate-50 p-6 md:p-10 flex justify-center items-start overflow-hidden relative">
                 <div className="absolute inset-0 bg-linear-to-b from-white via-transparent to-transparent opacity-50"></div>
 
-                <div className="w-full max-w-md bg-white shadow-[0_20px_60px_rgba(0,0,0,0.06)] border border-slate-200 p-8 md:p-10 flex flex-col scale-90 md:scale-100 origin-top animate-in fade-in slide-in-from-bottom-4 duration-700">
+                <div className="w-full max-w-md bg-white shadow-[0_20px_60px_rgba(0,0,0,0.06)] border border-slate-200 p-8 md:p-10 flex flex-col scale-[0.85] sm:scale-95 md:scale-100 origin-top animate-in fade-in slide-in-from-bottom-4 duration-700">
                   {/* Header */}
                   <div className="text-center mb-6 border-b border-slate-100 pb-6">
                     <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-900 mb-1">Surat Perjanjian Kerja Sama</h4>
