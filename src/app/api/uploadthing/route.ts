@@ -8,4 +8,4 @@ export const { GET, POST } = createRouteHandler({
   },
 });
 
-export const runtime = "nodejs";
+export const runtime = "edge";
