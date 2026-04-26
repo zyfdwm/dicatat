@@ -1188,8 +1188,15 @@ export default function Dashboard() {
                                            <span className="text-xs font-bold uppercase tracking-wider">Paid</span>
                                          </div>
                                          <button
-                                           onClick={() => window.open(project.dpProof, "_blank")}
-                                           className="w-10 h-10 flex items-center justify-center text-slate-400 hover:text-black transition-colors"
+                                           onClick={(e) => { 
+                                             e.stopPropagation(); 
+                                             if (project.dpProof) {
+                                               window.open(project.dpProof, "_blank");
+                                             } else {
+                                               alert("Bukti transfer tidak ditemukan. Silakan upload ulang.");
+                                             }
+                                           }}
+                                           className="w-10 h-10 flex items-center justify-center text-slate-400 hover:text-black transition-colors cursor-pointer"
                                            title="Lihat Bukti"
                                          >
                                            <Eye size={18} />
@@ -1225,7 +1232,7 @@ export default function Dashboard() {
                                            }}
                                            content={{ button: <Upload size={16} />, allowedContent: null }}
                                            appearance={{
-                                             button: "p-0 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors after:hidden focus-within:ring-0 w-10 h-10 flex items-center justify-center text-[0px]",
+                                             button: "p-0 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors after:hidden focus-within:ring-0 w-10 h-10 flex items-center justify-center text-[0px] [&_*]:text-[0px]",
                                              allowedContent: "hidden",
                                              container: "w-10 h-10"
                                            }}
@@ -1254,8 +1261,15 @@ export default function Dashboard() {
                                            <span className="text-xs font-bold uppercase tracking-wider">Paid</span>
                                          </div>
                                          <button
-                                           onClick={() => window.open(project.remainingProof, "_blank")}
-                                           className="w-10 h-10 flex items-center justify-center text-slate-400 hover:text-black transition-colors"
+                                           onClick={(e) => { 
+                                             e.stopPropagation(); 
+                                             if (project.remainingProof) {
+                                               window.open(project.remainingProof, "_blank");
+                                             } else {
+                                               alert("Bukti transfer tidak ditemukan. Silakan upload ulang.");
+                                             }
+                                           }}
+                                           className="w-10 h-10 flex items-center justify-center text-slate-400 hover:text-black transition-colors cursor-pointer"
                                            title="Lihat Bukti"
                                          >
                                            <Eye size={18} />
@@ -1291,7 +1305,7 @@ export default function Dashboard() {
                                            }}
                                            content={{ button: <Upload size={16} />, allowedContent: null }}
                                            appearance={{
-                                             button: "p-0 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors after:hidden focus-within:ring-0 w-10 h-10 flex items-center justify-center text-[0px]",
+                                             button: "p-0 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors after:hidden focus-within:ring-0 w-10 h-10 flex items-center justify-center text-[0px] [&_*]:text-[0px]",
                                              allowedContent: "hidden",
                                              container: "w-10 h-10"
                                            }}
@@ -1337,8 +1351,15 @@ export default function Dashboard() {
                                                <span className="text-xs font-bold uppercase tracking-wider">Paid</span>
                                              </div>
                                              <button
-                                               onClick={() => window.open(terminItem.proof, "_blank")}
-                                               className="w-10 h-10 flex items-center justify-center text-slate-400 hover:text-black transition-colors"
+                                               onClick={(e) => { 
+                                                 e.stopPropagation(); 
+                                                 if (terminItem.proof) {
+                                                   window.open(terminItem.proof, "_blank");
+                                                 } else {
+                                                   alert("Bukti transfer tidak ditemukan. Silakan upload ulang.");
+                                                 }
+                                               }}
+                                               className="w-10 h-10 flex items-center justify-center text-slate-400 hover:text-black transition-colors cursor-pointer"
                                                title="Lihat Bukti"
                                              >
                                                <Eye size={18} />
@@ -1374,7 +1395,7 @@ export default function Dashboard() {
                                                }}
                                                content={{ button: <Upload size={16} />, allowedContent: null }}
                                                appearance={{
-                                                 button: "p-0 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors after:hidden focus-within:ring-0 w-10 h-10 flex items-center justify-center text-[0px]",
+                                                 button: "p-0 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors after:hidden focus-within:ring-0 w-10 h-10 flex items-center justify-center text-[0px] [&_*]:text-[0px]",
                                                  allowedContent: "hidden",
                                                  container: "w-10 h-10"
                                                }}
@@ -1408,8 +1429,15 @@ export default function Dashboard() {
                                            <span className="text-xs font-bold uppercase tracking-wider">Paid</span>
                                          </div>
                                          <button
-                                           onClick={() => window.open(project.fullProof, "_blank")}
-                                           className="w-10 h-10 flex items-center justify-center text-slate-400 hover:text-black transition-colors"
+                                           onClick={(e) => { 
+                                             e.stopPropagation(); 
+                                             if (project.fullProof) {
+                                               window.open(project.fullProof, "_blank");
+                                             } else {
+                                               alert("Bukti transfer tidak ditemukan. Silakan upload ulang.");
+                                             }
+                                           }}
+                                           className="w-10 h-10 flex items-center justify-center text-slate-400 hover:text-black transition-colors cursor-pointer"
                                            title="Lihat Bukti"
                                          >
                                            <Eye size={18} />
@@ -1449,7 +1477,7 @@ export default function Dashboard() {
                                            }}
                                            content={{ button: <Upload size={16} />, allowedContent: null }}
                                            appearance={{ 
-                                             button: "p-0 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors after:hidden focus-within:ring-0 w-10 h-10 flex items-center justify-center text-[0px]",
+                                             button: "p-0 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors after:hidden focus-within:ring-0 w-10 h-10 flex items-center justify-center text-[0px] [&_*]:text-[0px]",
                                              allowedContent: "hidden",
                                              container: "w-10 h-10"
                                            }}
