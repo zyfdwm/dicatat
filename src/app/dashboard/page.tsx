@@ -381,15 +381,6 @@ export default function Dashboard() {
     }
   };
 
-  const deleteProject = async (id: string) => {
-    if (confirm("Hapus project ini secara permanen?")) {
-      try {
-        await deleteDoc(doc(db, "projects", id));
-      } catch (e) {
-        console.error("Error deleting", e);
-      }
-    }
-  };
 
   const handleCreateNew = () => {
     setFormData({ ...defaultForm, date: format(new Date(), "yyyy-MM-dd") });
@@ -407,14 +398,24 @@ export default function Dashboard() {
   };
 
 
-  const handleDelete = (id: string) => {
-    if (confirm("Apakah kamu yakin ingin menghapus project ini?")) {
-      setProjects((prev) => prev.filter((p) => p.id !== id));
+  const handleDelete = async (id: string) => {
+    if (confirm("Apakah kamu yakin ingin menghapus project ini secara permanen?")) {
+      try {
+        await deleteDoc(doc(db, "projects", id));
+        // State projects akan terupdate otomatis lewat onSnapshot di useEffect
+      } catch (e) {
+        console.error("Error deleting", e);
+        alert("Gagal menghapus project.");
+      }
     }
   };
 
-  const updateProjectStatus = (id: string, newStatus: string) => {
-    setProjects((prev) => prev.map((p) => p.id === id ? { ...p, status: newStatus } : p));
+  const updateProjectStatus = async (id: string, newStatus: string) => {
+    try {
+      await updateDoc(doc(db, "projects", id), { status: newStatus });
+    } catch (e) {
+      console.error("Error updating status", e);
+    }
   };
 
   const getStatusColor = (status: string) => {
@@ -1183,13 +1184,25 @@ export default function Dashboard() {
                                         <CheckCircle size={14} />
                                         <span className="text-xs font-bold uppercase tracking-wider">Paid</span>
                                       </div>
-                                      <button
-                                        onClick={() => window.open(project.dpProof, "_blank")}
-                                        className="w-10 h-10 flex items-center justify-center text-slate-400 hover:text-black transition-colors"
-                                        title="Lihat Bukti"
-                                      >
-                                        <Eye size={18} />
-                                      </button>
+                                        <UploadButton
+                                          endpoint="proofUploader"
+                                          onClientUploadComplete={(res: any[]) => {
+                                            if (res?.[0]) handleDPPaid(project.id, res[0].url);
+                                          }}
+                                          onUploadError={(err: Error) => alert(err.message)}
+                                          content={{ 
+                                            button({ isUploading, uploadProgress }) {
+                                              if (isUploading) return <span className="text-[10px] font-bold" style={{ fontSize: '10px' }}>{uploadProgress}%</span>;
+                                              return <Upload size={16} />;
+                                            },
+                                            allowedContent: null
+                                          }}
+                                          appearance={{
+                                            button: "p-0 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors after:hidden focus-within:ring-0 w-10 h-10 flex items-center justify-center text-[0px]",
+                                            allowedContent: "hidden",
+                                            container: "w-10 h-10"
+                                          }}
+                                        />
                                     </div>
                                   ) : (
                                     <div className="flex flex-wrap items-center gap-2">
@@ -1207,11 +1220,14 @@ export default function Dashboard() {
                                         }}
                                         onUploadError={(err: Error) => alert(err.message)}
                                         content={{ 
-                                          button: <Upload size={16} />,
+                                          button({ isUploading, uploadProgress }) {
+                                            if (isUploading) return <span className="text-[10px] font-bold">{uploadProgress}%</span>;
+                                            return <Upload size={16} />;
+                                          },
                                           allowedContent: null
                                         }}
                                         appearance={{
-                                          button: "p-0 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors after:hidden focus-within:ring-0 w-10 h-10 flex items-center justify-center text-[0px]",
+                                          button: "p-0 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors after:hidden focus-within:ring-0 w-10 h-10 flex items-center justify-center",
                                           allowedContent: "hidden",
                                           container: "w-10 h-10"
                                         }}
@@ -1234,13 +1250,25 @@ export default function Dashboard() {
                                         <CheckCircle size={14} />
                                         <span className="text-xs font-bold uppercase tracking-wider">Paid</span>
                                       </div>
-                                      <button
-                                        onClick={() => window.open(project.remainingProof, "_blank")}
-                                        className="w-10 h-10 flex items-center justify-center text-slate-400 hover:text-black transition-colors"
-                                        title="Lihat Bukti"
-                                      >
-                                        <Eye size={18} />
-                                      </button>
+                                        <UploadButton
+                                          endpoint="proofUploader"
+                                          onClientUploadComplete={(res: any[]) => {
+                                            if (res?.[0]) handleRemainingPaid(project.id, res[0].url);
+                                          }}
+                                          onUploadError={(err: Error) => alert(err.message)}
+                                          content={{ 
+                                            button({ isUploading, uploadProgress }) {
+                                              if (isUploading) return <span className="text-[10px] font-bold" style={{ fontSize: '10px' }}>{uploadProgress}%</span>;
+                                              return <Upload size={16} />;
+                                            },
+                                            allowedContent: null
+                                          }}
+                                          appearance={{
+                                            button: "p-0 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors after:hidden focus-within:ring-0 w-10 h-10 flex items-center justify-center text-[0px]",
+                                            allowedContent: "hidden",
+                                            container: "w-10 h-10"
+                                          }}
+                                        />
                                     </div>
                                   ) : (
                                     <div className="flex flex-wrap items-center gap-2">
@@ -1258,11 +1286,14 @@ export default function Dashboard() {
                                         }}
                                         onUploadError={(err: Error) => alert(err.message)}
                                         content={{ 
-                                          button: <Upload size={16} />,
+                                          button({ isUploading, uploadProgress }) {
+                                            if (isUploading) return <span className="text-[10px] font-bold">{uploadProgress}%</span>;
+                                            return <Upload size={16} />;
+                                          },
                                           allowedContent: null
                                         }}
                                         appearance={{
-                                          button: "p-0 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors after:hidden focus-within:ring-0 w-10 h-10 flex items-center justify-center text-[0px]",
+                                          button: "p-0 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors after:hidden focus-within:ring-0 w-10 h-10 flex items-center justify-center",
                                           allowedContent: "hidden",
                                           container: "w-10 h-10"
                                         }}
@@ -1302,13 +1333,25 @@ export default function Dashboard() {
                                             <CheckCircle size={14} />
                                             <span className="text-xs font-bold uppercase tracking-wider">Paid</span>
                                           </div>
-                                          <button
-                                            onClick={() => window.open(terminItem.proof, "_blank")}
-                                            className="w-10 h-10 flex items-center justify-center text-slate-400 hover:text-black transition-colors"
-                                            title="Lihat Bukti"
-                                          >
-                                            <Eye size={18} />
-                                          </button>
+                                            <UploadButton
+                                              endpoint="proofUploader"
+                                              onClientUploadComplete={(res: any[]) => {
+                                                if (res?.[0]) toggleTerminPaid(project.id, num, res[0].url);
+                                              }}
+                                              onUploadError={(err: Error) => alert(err.message)}
+                                              content={{ 
+                                                button({ isUploading, uploadProgress }) {
+                                                  if (isUploading) return <span className="text-[10px] font-bold" style={{ fontSize: '10px' }}>{uploadProgress}%</span>;
+                                                  return <Upload size={16} />;
+                                                },
+                                                allowedContent: null
+                                              }}
+                                              appearance={{
+                                                button: "p-0 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors after:hidden focus-within:ring-0 w-10 h-10 flex items-center justify-center text-[0px]",
+                                                allowedContent: "hidden",
+                                                container: "w-10 h-10"
+                                              }}
+                                            />
                                         </div>
                                       ) : (
                                         <div className="flex items-center gap-2">
@@ -1326,11 +1369,14 @@ export default function Dashboard() {
                                             }}
                                             onUploadError={(err: Error) => alert(err.message)}
                                             content={{ 
-                                           button: <Upload size={16} />,
-                                           allowedContent: null
-                                         }}
+                                              button({ isUploading, uploadProgress }) {
+                                                if (isUploading) return <span className="text-[10px] font-bold">{uploadProgress}%</span>;
+                                                return <Upload size={16} />;
+                                              },
+                                              allowedContent: null
+                                            }}
                                             appearance={{
-                                              button: "p-0 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors after:hidden focus-within:ring-0 w-10 h-10 flex items-center justify-center text-[0px]",
+                                              button: "p-0 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors after:hidden focus-within:ring-0 w-10 h-10 flex items-center justify-center",
                                               allowedContent: "hidden",
                                               container: "w-10 h-10"
                                             }}
@@ -1358,13 +1404,25 @@ export default function Dashboard() {
                                         <CheckCircle size={14} />
                                         <span className="text-xs font-bold uppercase tracking-wider">Paid</span>
                                       </div>
-                                      <button
-                                        onClick={() => window.open(project.fullProof, "_blank")}
-                                        className="w-10 h-10 flex items-center justify-center text-slate-400 hover:text-black transition-colors"
-                                        title="Lihat Bukti"
-                                      >
-                                        <Eye size={18} />
-                                      </button>
+                                        <UploadButton
+                                          endpoint="proofUploader"
+                                          onClientUploadComplete={(res: any[]) => {
+                                            if (res?.[0]) handleFullPaid(project.id, res[0].url);
+                                          }}
+                                          onUploadError={(err: Error) => alert(err.message)}
+                                          content={{ 
+                                            button({ isUploading, uploadProgress }) {
+                                              if (isUploading) return <span className="text-[10px] font-bold" style={{ fontSize: '10px' }}>{uploadProgress}%</span>;
+                                              return <Upload size={16} />;
+                                            },
+                                            allowedContent: null
+                                          }}
+                                          appearance={{ 
+                                            button: "p-0 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors after:hidden focus-within:ring-0 w-10 h-10 flex items-center justify-center text-[0px]",
+                                            allowedContent: "hidden",
+                                            container: "w-10 h-10"
+                                          }}
+                                        />
                                     </div>
                                   ) : (
                                     <div className="flex flex-wrap items-center gap-2">
@@ -1386,11 +1444,14 @@ export default function Dashboard() {
                                         }}
                                         onUploadError={(err: Error) => alert(err.message)}
                                         content={{ 
-                                          button: <Upload size={16} />,
+                                          button({ isUploading, uploadProgress }) {
+                                            if (isUploading) return <span className="text-[10px] font-bold">{uploadProgress}%</span>;
+                                            return <Upload size={16} />;
+                                          },
                                           allowedContent: null
                                         }}
                                         appearance={{ 
-                                          button: "p-0 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors after:hidden focus-within:ring-0 w-10 h-10 flex items-center justify-center text-[0px]",
+                                          button: "p-0 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors after:hidden focus-within:ring-0 w-10 h-10 flex items-center justify-center",
                                           allowedContent: "hidden",
                                           container: "w-10 h-10"
                                         }}
