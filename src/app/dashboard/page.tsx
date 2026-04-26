@@ -79,6 +79,8 @@ export default function Dashboard() {
   const [user, setUser] = useState<User | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
   const [view, setView] = useState<"LIST" | "FORM" | "PREVIEW" | "INVOICE" | "SELECT_INVOICE">("LIST");
+  const [activeTab, setActiveTab] = useState<"projects" | "clients" | "reports">("projects");
+  const [uploadingProgress, setUploadingProgress] = useState<Record<string, number>>({});
   const [formData, setFormData] = useState<Project | Omit<Project, "id">>(defaultForm);
   const [selectedTermin, setSelectedTermin] = useState<number | null>(null);
   const [isDPInvoice, setIsDPInvoice] = useState(false);
@@ -1172,136 +1174,136 @@ export default function Dashboard() {
                               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Tahapan Pembayaran DP</p>
 
                               {/* 1. Down Payment Row */}
-                              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 bg-white border border-slate-100 rounded-xl">
-                                <div>
-                                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Tahap 1: Uang Muka</p>
-                                  <p className="text-sm font-bold text-slate-800">DP {project.paymentDetails || "___"}</p>
-                                </div>
-                                <div className="flex items-center gap-3">
-                                  {project.isDPPaid ? (
-                                    <div className="flex items-center gap-2">
-                                      <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 text-emerald-600 rounded-lg border border-emerald-100">
-                                        <CheckCircle size={14} />
-                                        <span className="text-xs font-bold uppercase tracking-wider">Paid</span>
-                                      </div>
-                                        <UploadButton
-                                          endpoint="proofUploader"
-                                          onClientUploadComplete={(res: any[]) => {
-                                            if (res?.[0]) handleDPPaid(project.id, res[0].url);
-                                          }}
-                                          onUploadError={(err: Error) => alert(err.message)}
-                                          content={{ 
-                                            button({ isUploading, uploadProgress }) {
-                                              if (isUploading) return <span className="text-[10px] font-bold" style={{ fontSize: '10px' }}>{uploadProgress}%</span>;
-                                              return <Upload size={16} />;
-                                            },
-                                            allowedContent: null
-                                          }}
-                                          appearance={{
-                                            button: "p-0 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors after:hidden focus-within:ring-0 w-10 h-10 flex items-center justify-center text-[0px]",
-                                            allowedContent: "hidden",
-                                            container: "w-10 h-10"
-                                          }}
-                                        />
-                                    </div>
-                                  ) : (
-                                    <div className="flex flex-wrap items-center gap-2">
-                                      <button
-                                        onClick={() => handlePrintDP(project, "DP")}
-                                        className="w-10 h-10 flex items-center justify-center bg-black text-white rounded-lg hover:bg-slate-800 transition-colors"
-                                        title="Cetak Invoice DP"
-                                      >
-                                        <Printer size={16} />
-                                      </button>
-                                      <UploadButton
-                                        endpoint="proofUploader"
-                                        onClientUploadComplete={(res: any[]) => {
-                                          if (res?.[0]) handleDPPaid(project.id, res[0].url);
-                                        }}
-                                        onUploadError={(err: Error) => alert(err.message)}
-                                        content={{ 
-                                          button({ isUploading, uploadProgress }) {
-                                            if (isUploading) return <span className="text-[10px] font-bold">{uploadProgress}%</span>;
-                                            return <Upload size={16} />;
-                                          },
-                                          allowedContent: null
-                                        }}
-                                        appearance={{
-                                          button: "p-0 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors after:hidden focus-within:ring-0 w-10 h-10 flex items-center justify-center",
-                                          allowedContent: "hidden",
-                                          container: "w-10 h-10"
-                                        }}
-                                      />
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
+                              <div className="flex flex-col p-4 bg-white border border-slate-100 rounded-xl relative overflow-hidden">
+                                 <div className="flex flex-row md:items-center justify-between gap-4">
+                                   <div>
+                                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Tahap 1: Uang Muka</p>
+                                     <p className="text-sm font-bold text-slate-800">DP {project.paymentDetails || "___"}</p>
+                                   </div>
+                                   <div className="flex items-center gap-3">
+                                     {project.isDPPaid ? (
+                                       <div className="flex items-center gap-2">
+                                         <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 text-emerald-600 rounded-lg border border-emerald-100">
+                                           <CheckCircle size={14} />
+                                           <span className="text-xs font-bold uppercase tracking-wider">Paid</span>
+                                         </div>
+                                         <button
+                                           onClick={() => window.open(project.dpProof, "_blank")}
+                                           className="w-10 h-10 flex items-center justify-center text-slate-400 hover:text-black transition-colors"
+                                           title="Lihat Bukti"
+                                         >
+                                           <Eye size={18} />
+                                         </button>
+                                       </div>
+                                     ) : (
+                                       <div className="flex flex-wrap items-center gap-2">
+                                         <button
+                                           onClick={() => handlePrintDP(project, "DP")}
+                                           className="w-10 h-10 flex items-center justify-center bg-black text-white rounded-lg hover:bg-slate-800 transition-colors"
+                                           title="Cetak Invoice DP"
+                                         >
+                                           <Printer size={16} />
+                                         </button>
+                                         <UploadButton
+                                           endpoint="proofUploader"
+                                           onUploadProgress={(p) => setUploadingProgress(prev => ({ ...prev, [`${project.id}-dp`]: p }))}
+                                           onClientUploadComplete={(res: any[]) => {
+                                             setUploadingProgress(prev => {
+                                               const next = { ...prev };
+                                               delete next[`${project.id}-dp`];
+                                               return next;
+                                             });
+                                             if (res?.[0]) handleDPPaid(project.id, res[0].url);
+                                           }}
+                                           onUploadError={(err: Error) => {
+                                             setUploadingProgress(prev => {
+                                               const next = { ...prev };
+                                               delete next[`${project.id}-dp`];
+                                               return next;
+                                             });
+                                             alert(err.message);
+                                           }}
+                                           content={{ button: <Upload size={16} />, allowedContent: null }}
+                                           appearance={{
+                                             button: "p-0 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors after:hidden focus-within:ring-0 w-10 h-10 flex items-center justify-center text-[0px]",
+                                             allowedContent: "hidden",
+                                             container: "w-10 h-10"
+                                           }}
+                                         />
+                                       </div>
+                                     )}
+                                   </div>
+                                 </div>
+                                 {uploadingProgress[`${project.id}-dp`] !== undefined && (
+                                   <div className="absolute bottom-0 left-0 h-1 bg-emerald-500 transition-all duration-300" style={{ width: `${uploadingProgress[`${project.id}-dp`]}%` }} />
+                                 )}
+                               </div>
 
                               {/* 2. Remaining Payment Row */}
-                              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 bg-white border border-slate-100 rounded-xl">
-                                <div>
-                                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Tahap 2: Pelunasan</p>
-                                  <p className="text-sm font-bold text-slate-800">Sisa Pembayaran (Full)</p>
-                                </div>
-                                <div className="flex items-center gap-3">
-                                  {project.isRemainingPaid ? (
-                                    <div className="flex items-center gap-2">
-                                      <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 text-emerald-600 rounded-lg border border-emerald-100">
-                                        <CheckCircle size={14} />
-                                        <span className="text-xs font-bold uppercase tracking-wider">Paid</span>
-                                      </div>
-                                        <UploadButton
-                                          endpoint="proofUploader"
-                                          onClientUploadComplete={(res: any[]) => {
-                                            if (res?.[0]) handleRemainingPaid(project.id, res[0].url);
-                                          }}
-                                          onUploadError={(err: Error) => alert(err.message)}
-                                          content={{ 
-                                            button({ isUploading, uploadProgress }) {
-                                              if (isUploading) return <span className="text-[10px] font-bold" style={{ fontSize: '10px' }}>{uploadProgress}%</span>;
-                                              return <Upload size={16} />;
-                                            },
-                                            allowedContent: null
-                                          }}
-                                          appearance={{
-                                            button: "p-0 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors after:hidden focus-within:ring-0 w-10 h-10 flex items-center justify-center text-[0px]",
-                                            allowedContent: "hidden",
-                                            container: "w-10 h-10"
-                                          }}
-                                        />
-                                    </div>
-                                  ) : (
-                                    <div className="flex flex-wrap items-center gap-2">
-                                      <button
-                                        onClick={() => handlePrintDP(project, "REMAINING")}
-                                        className="w-10 h-10 flex items-center justify-center bg-black text-white rounded-lg hover:bg-slate-800 transition-colors"
-                                        title="Cetak Pelunasan"
-                                      >
-                                        <Printer size={16} />
-                                      </button>
-                                      <UploadButton
-                                        endpoint="proofUploader"
-                                        onClientUploadComplete={(res: any[]) => {
-                                          if (res?.[0]) handleRemainingPaid(project.id, res[0].url);
-                                        }}
-                                        onUploadError={(err: Error) => alert(err.message)}
-                                        content={{ 
-                                          button({ isUploading, uploadProgress }) {
-                                            if (isUploading) return <span className="text-[10px] font-bold">{uploadProgress}%</span>;
-                                            return <Upload size={16} />;
-                                          },
-                                          allowedContent: null
-                                        }}
-                                        appearance={{
-                                          button: "p-0 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors after:hidden focus-within:ring-0 w-10 h-10 flex items-center justify-center",
-                                          allowedContent: "hidden",
-                                          container: "w-10 h-10"
-                                        }}
-                                      />
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
+                              <div className="flex flex-col p-4 bg-white border border-slate-100 rounded-xl relative overflow-hidden">
+                                 <div className="flex flex-row md:items-center justify-between gap-4">
+                                   <div>
+                                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Tahap 2: Pelunasan</p>
+                                     <p className="text-sm font-bold text-slate-800">Sisa Pembayaran (Full)</p>
+                                   </div>
+                                   <div className="flex items-center gap-3">
+                                     {project.isRemainingPaid ? (
+                                       <div className="flex items-center gap-2">
+                                         <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 text-emerald-600 rounded-lg border border-emerald-100">
+                                           <CheckCircle size={14} />
+                                           <span className="text-xs font-bold uppercase tracking-wider">Paid</span>
+                                         </div>
+                                         <button
+                                           onClick={() => window.open(project.remainingProof, "_blank")}
+                                           className="w-10 h-10 flex items-center justify-center text-slate-400 hover:text-black transition-colors"
+                                           title="Lihat Bukti"
+                                         >
+                                           <Eye size={18} />
+                                         </button>
+                                       </div>
+                                     ) : (
+                                       <div className="flex flex-wrap items-center gap-2">
+                                         <button
+                                           onClick={() => handlePrintDP(project, "REMAINING")}
+                                           className="w-10 h-10 flex items-center justify-center bg-black text-white rounded-lg hover:bg-slate-800 transition-colors"
+                                           title="Cetak Pelunasan"
+                                         >
+                                           <Printer size={16} />
+                                         </button>
+                                         <UploadButton
+                                           endpoint="proofUploader"
+                                           onUploadProgress={(p) => setUploadingProgress(prev => ({ ...prev, [`${project.id}-rem`]: p }))}
+                                           onClientUploadComplete={(res: any[]) => {
+                                             setUploadingProgress(prev => {
+                                               const next = { ...prev };
+                                               delete next[`${project.id}-rem`];
+                                               return next;
+                                             });
+                                             if (res?.[0]) handleRemainingPaid(project.id, res[0].url);
+                                           }}
+                                           onUploadError={(err: Error) => {
+                                             setUploadingProgress(prev => {
+                                               const next = { ...prev };
+                                               delete next[`${project.id}-rem`];
+                                               return next;
+                                             });
+                                             alert(err.message);
+                                           }}
+                                           content={{ button: <Upload size={16} />, allowedContent: null }}
+                                           appearance={{
+                                             button: "p-0 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors after:hidden focus-within:ring-0 w-10 h-10 flex items-center justify-center text-[0px]",
+                                             allowedContent: "hidden",
+                                             container: "w-10 h-10"
+                                           }}
+                                         />
+                                       </div>
+                                     )}
+                                   </div>
+                                 </div>
+                                 {uploadingProgress[`${project.id}-rem`] !== undefined && (
+                                   <div className="absolute bottom-0 left-0 h-1 bg-emerald-500 transition-all duration-300" style={{ width: `${uploadingProgress[`${project.id}-rem`]}%` }} />
+                                 )}
+                               </div>
                             </div>
                           )}
 
@@ -1315,151 +1317,151 @@ export default function Dashboard() {
                                 const isPaid = !!terminItem;
 
                                 return (
-                                  <div key={num} className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 bg-white border border-slate-100 rounded-xl">
-                                    <div className="flex items-center gap-3">
-                                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-black ${isPaid ? "bg-emerald-500 text-white" : "bg-slate-100 text-slate-400"}`}>
-                                        {num}
-                                      </div>
-                                      <div>
-                                        <p className="text-sm font-bold text-slate-800">Termin {num}</p>
-                                        <p className="text-[10px] text-slate-400 font-bold uppercase">Rp {formatPrice(b.perTermin)}</p>
-                                      </div>
-                                    </div>
-
-                                    <div className="flex items-center gap-3">
-                                      {isPaid ? (
-                                        <div className="flex items-center gap-2">
-                                          <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 text-emerald-600 rounded-lg border border-emerald-100">
-                                            <CheckCircle size={14} />
-                                            <span className="text-xs font-bold uppercase tracking-wider">Paid</span>
-                                          </div>
-                                            <UploadButton
-                                              endpoint="proofUploader"
-                                              onClientUploadComplete={(res: any[]) => {
-                                                if (res?.[0]) toggleTerminPaid(project.id, num, res[0].url);
-                                              }}
-                                              onUploadError={(err: Error) => alert(err.message)}
-                                              content={{ 
-                                                button({ isUploading, uploadProgress }) {
-                                                  if (isUploading) return <span className="text-[10px] font-bold" style={{ fontSize: '10px' }}>{uploadProgress}%</span>;
-                                                  return <Upload size={16} />;
-                                                },
-                                                allowedContent: null
-                                              }}
-                                              appearance={{
-                                                button: "p-0 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors after:hidden focus-within:ring-0 w-10 h-10 flex items-center justify-center text-[0px]",
-                                                allowedContent: "hidden",
-                                                container: "w-10 h-10"
-                                              }}
-                                            />
-                                        </div>
-                                      ) : (
-                                        <div className="flex items-center gap-2">
-                                          <button
-                                            onClick={() => handlePrintTermin(project, num)}
-                                            className="w-10 h-10 flex items-center justify-center bg-black text-white rounded-lg hover:bg-slate-800 transition-colors"
-                                            title="Cetak Invoice"
-                                          >
-                                            <Printer size={16} />
-                                          </button>
-                                          <UploadButton
-                                            endpoint="proofUploader"
-                                            onClientUploadComplete={(res: any[]) => {
-                                              if (res?.[0]) toggleTerminPaid(project.id, num, res[0].url);
-                                            }}
-                                            onUploadError={(err: Error) => alert(err.message)}
-                                            content={{ 
-                                              button({ isUploading, uploadProgress }) {
-                                                if (isUploading) return <span className="text-[10px] font-bold">{uploadProgress}%</span>;
-                                                return <Upload size={16} />;
-                                              },
-                                              allowedContent: null
-                                            }}
-                                            appearance={{
-                                              button: "p-0 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors after:hidden focus-within:ring-0 w-10 h-10 flex items-center justify-center",
-                                              allowedContent: "hidden",
-                                              container: "w-10 h-10"
-                                            }}
-                                          />
-                                        </div>
-                                      )}
-                                    </div>
-                                  </div>
+                                   <div key={num} className="flex flex-col p-4 bg-white border border-slate-100 rounded-xl relative overflow-hidden">
+                                     <div className="flex flex-row md:items-center justify-between gap-4">
+                                       <div className="flex items-center gap-3">
+                                         <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-black ${isPaid ? "bg-emerald-500 text-white" : "bg-slate-100 text-slate-400"}`}>
+                                           {num}
+                                         </div>
+                                         <div>
+                                           <p className="text-sm font-bold text-slate-800">Termin {num}</p>
+                                           <p className="text-[10px] text-slate-400 font-bold uppercase">Rp {formatPrice(b.perTermin)}</p>
+                                         </div>
+                                       </div>
+ 
+                                       <div className="flex items-center gap-3">
+                                         {isPaid ? (
+                                           <div className="flex items-center gap-2">
+                                             <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 text-emerald-600 rounded-lg border border-emerald-100">
+                                               <CheckCircle size={14} />
+                                               <span className="text-xs font-bold uppercase tracking-wider">Paid</span>
+                                             </div>
+                                             <button
+                                               onClick={() => window.open(terminItem.proof, "_blank")}
+                                               className="w-10 h-10 flex items-center justify-center text-slate-400 hover:text-black transition-colors"
+                                               title="Lihat Bukti"
+                                             >
+                                               <Eye size={18} />
+                                             </button>
+                                           </div>
+                                         ) : (
+                                           <div className="flex items-center gap-2">
+                                             <button
+                                               onClick={() => handlePrintTermin(project, num)}
+                                               className="w-10 h-10 flex items-center justify-center bg-black text-white rounded-lg hover:bg-slate-800 transition-colors"
+                                               title="Cetak Invoice"
+                                             >
+                                               <Printer size={16} />
+                                             </button>
+                                             <UploadButton
+                                               endpoint="proofUploader"
+                                               onUploadProgress={(p) => setUploadingProgress(prev => ({ ...prev, [`${project.id}-t-${num}`]: p }))}
+                                               onClientUploadComplete={(res: any[]) => {
+                                                 setUploadingProgress(prev => {
+                                                   const next = { ...prev };
+                                                   delete next[`${project.id}-t-${num}`];
+                                                   return next;
+                                                 });
+                                                 if (res?.[0]) toggleTerminPaid(project.id, num, res[0].url);
+                                               }}
+                                               onUploadError={(err: Error) => {
+                                                 setUploadingProgress(prev => {
+                                                   const next = { ...prev };
+                                                   delete next[`${project.id}-t-${num}`];
+                                                   return next;
+                                                 });
+                                                 alert(err.message);
+                                               }}
+                                               content={{ button: <Upload size={16} />, allowedContent: null }}
+                                               appearance={{
+                                                 button: "p-0 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors after:hidden focus-within:ring-0 w-10 h-10 flex items-center justify-center text-[0px]",
+                                                 allowedContent: "hidden",
+                                                 container: "w-10 h-10"
+                                               }}
+                                             />
+                                           </div>
+                                         )}
+                                       </div>
+                                     </div>
+                                     {uploadingProgress[`${project.id}-t-${num}`] !== undefined && (
+                                       <div className="absolute bottom-0 left-0 h-1 bg-emerald-500 transition-all duration-300" style={{ width: `${uploadingProgress[`${project.id}-t-${num}`]}%` }} />
+                                     )}
+                                   </div>
                                 );
                               })}
                             </div>
                           )}
-
+                          
                           {/* Case: Full Payment */}
                           {!isTermin && !isDP && (
-                            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 bg-white border border-slate-100 rounded-xl">
-                              <div>
-                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Pembayaran Penuh</p>
-                                <p className="text-sm font-bold text-slate-800">Total Rp {project.price}</p>
-                              </div>
-                              <div className="flex items-center gap-3">
-                                  {project.isPaid ? (
-                                    <div className="flex items-center gap-2">
-                                      <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 text-emerald-600 rounded-lg border border-emerald-100 h-10">
-                                        <CheckCircle size={14} />
-                                        <span className="text-xs font-bold uppercase tracking-wider">Paid</span>
-                                      </div>
-                                        <UploadButton
-                                          endpoint="proofUploader"
-                                          onClientUploadComplete={(res: any[]) => {
-                                            if (res?.[0]) handleFullPaid(project.id, res[0].url);
-                                          }}
-                                          onUploadError={(err: Error) => alert(err.message)}
-                                          content={{ 
-                                            button({ isUploading, uploadProgress }) {
-                                              if (isUploading) return <span className="text-[10px] font-bold" style={{ fontSize: '10px' }}>{uploadProgress}%</span>;
-                                              return <Upload size={16} />;
-                                            },
-                                            allowedContent: null
-                                          }}
-                                          appearance={{ 
-                                            button: "p-0 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors after:hidden focus-within:ring-0 w-10 h-10 flex items-center justify-center text-[0px]",
-                                            allowedContent: "hidden",
-                                            container: "w-10 h-10"
-                                          }}
-                                        />
-                                    </div>
-                                  ) : (
-                                    <div className="flex flex-wrap items-center gap-2">
-                                      <button
-                                        onClick={() => {
-                                          setFormData(project);
-                                          setSelectedTermin(null);
-                                          setView("INVOICE");
-                                        }}
-                                        className="w-10 h-10 flex items-center justify-center bg-black text-white rounded-lg hover:bg-slate-800 transition-colors"
-                                        title="Cetak Invoice Full"
-                                      >
-                                        <Printer size={16} />
-                                      </button>
-                                      <UploadButton
-                                        endpoint="proofUploader"
-                                        onClientUploadComplete={(res: any[]) => {
-                                          if (res?.[0]) handleFullPaid(project.id, res[0].url);
-                                        }}
-                                        onUploadError={(err: Error) => alert(err.message)}
-                                        content={{ 
-                                          button({ isUploading, uploadProgress }) {
-                                            if (isUploading) return <span className="text-[10px] font-bold">{uploadProgress}%</span>;
-                                            return <Upload size={16} />;
-                                          },
-                                          allowedContent: null
-                                        }}
-                                        appearance={{ 
-                                          button: "p-0 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors after:hidden focus-within:ring-0 w-10 h-10 flex items-center justify-center",
-                                          allowedContent: "hidden",
-                                          container: "w-10 h-10"
-                                        }}
-                                      />
-                                    </div>
-                                  )}
-                              </div>
-                            </div>
+                             <div className="flex flex-col p-4 bg-white border border-slate-100 rounded-xl relative overflow-hidden">
+                               <div className="flex flex-row md:items-center justify-between gap-4">
+                                 <div>
+                                   <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Pembayaran Penuh</p>
+                                   <p className="text-sm font-bold text-slate-800">Total Rp {project.price}</p>
+                                 </div>
+                                 <div className="flex items-center gap-3">
+                                     {project.isPaid ? (
+                                       <div className="flex items-center gap-2">
+                                         <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 text-emerald-600 rounded-lg border border-emerald-100 h-10">
+                                           <CheckCircle size={14} />
+                                           <span className="text-xs font-bold uppercase tracking-wider">Paid</span>
+                                         </div>
+                                         <button
+                                           onClick={() => window.open(project.fullProof, "_blank")}
+                                           className="w-10 h-10 flex items-center justify-center text-slate-400 hover:text-black transition-colors"
+                                           title="Lihat Bukti"
+                                         >
+                                           <Eye size={18} />
+                                         </button>
+                                       </div>
+                                     ) : (
+                                       <div className="flex flex-wrap items-center gap-2">
+                                         <button
+                                           onClick={() => {
+                                             setFormData(project);
+                                             setSelectedTermin(null);
+                                             setView("INVOICE");
+                                           }}
+                                           className="w-10 h-10 flex items-center justify-center bg-black text-white rounded-lg hover:bg-slate-800 transition-colors"
+                                           title="Cetak Invoice Full"
+                                         >
+                                           <Printer size={16} />
+                                         </button>
+                                         <UploadButton
+                                           endpoint="proofUploader"
+                                           onUploadProgress={(p) => setUploadingProgress(prev => ({ ...prev, [`${project.id}-full`]: p }))}
+                                           onClientUploadComplete={(res: any[]) => {
+                                             setUploadingProgress(prev => {
+                                               const next = { ...prev };
+                                               delete next[`${project.id}-full`];
+                                               return next;
+                                             });
+                                             if (res?.[0]) handleFullPaid(project.id, res[0].url);
+                                           }}
+                                           onUploadError={(err: Error) => {
+                                             setUploadingProgress(prev => {
+                                               const next = { ...prev };
+                                               delete next[`${project.id}-full`];
+                                               return next;
+                                             });
+                                             alert(err.message);
+                                           }}
+                                           content={{ button: <Upload size={16} />, allowedContent: null }}
+                                           appearance={{ 
+                                             button: "p-0 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors after:hidden focus-within:ring-0 w-10 h-10 flex items-center justify-center text-[0px]",
+                                             allowedContent: "hidden",
+                                             container: "w-10 h-10"
+                                           }}
+                                         />
+                                       </div>
+                                     )}
+                                 </div>
+                               </div>
+                               {uploadingProgress[`${project.id}-full`] !== undefined && (
+                                 <div className="absolute bottom-0 left-0 h-1 bg-emerald-500 transition-all duration-300" style={{ width: `${uploadingProgress[`${project.id}-full`]}%` }} />
+                               )}
+                             </div>
                           )}
                         </div>
                       </div>
