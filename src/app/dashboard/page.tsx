@@ -194,23 +194,25 @@ export default function Dashboard() {
         dpAmount = parsePrice(details);
         percentStr = total > 0 ? `${Math.round((dpAmount / total) * 100)}%` : "0%";
       }
-      return { ...result, type: "DP", dp: dpAmount, remaining: total - dpAmount, percent: percentStr };
+      return { ...result, type: "DP", dp: dpAmount, remaining: total - dpAmount, percent: percentStr, isPaid: isDPInvoice ? (formData as Project).isDPPaid || false : (formData as Project).isRemainingPaid || false };
     }
 
     if (formData.paymentMethod === "Pembayaran Bertahap (Termin)") {
       const terminMatch = details.match(/(\d+)/);
       const c = terminMatch ? parseInt(terminMatch[0]) : 1;
+      const currentT = selectedTermin || 0;
       return {
         ...result,
         type: "TERMIN",
         count: c,
         perTermin: total / (c || 1),
         isTerminInvoice: !!selectedTermin,
-        currentTermin: selectedTermin || 0
+        currentTermin: currentT,
+        isPaid: (formData as Project).paidTermins?.some(t => t.num === currentT) || false
       };
     }
 
-    return result;
+    return { ...result, isPaid: (formData as Project).isPaid || false };
   };
 
   const getPaymentBreakdownForProject = (p: Project) => {
@@ -338,6 +340,7 @@ export default function Dashboard() {
     setSelectedTermin(null);
     setIsDPInvoice(false);
     setIsRemainingInvoice(false);
+    setExpandedProjectId(project.id);
     setView("SELECT_INVOICE");
   };
 
@@ -486,183 +489,187 @@ export default function Dashboard() {
   if (!isMounted) return null;
 
   // Reusable Document Preview component
-  const InvoicePaper = () => (
-    <div className="max-w-[210mm] mx-auto bg-white shadow-xl print-paper text-slate-900 text-[15px] leading-relaxed print:shadow-none print:max-w-none font-sans print:font-sans relative">
-      {/* Watermark Logo */}
-      <div className="absolute top-[-60px] left-6 opacity-[0.08] pointer-events-none select-none">
-        <img src="/watermark.png" alt="Watermark" className="w-72 object-contain grayscale brightness-0 invert-0" />
-      </div>
+  const InvoicePaper = () => {
+    const { isPaid: isInvoicePaid } = getPaymentBreakdown();
+    return (
+      <div className="max-w-[210mm] mx-auto bg-white shadow-xl print-paper text-slate-900 text-[15px] leading-relaxed print:shadow-none print:max-w-none font-sans print:font-sans relative">
+        {/* Watermark Logo */}
+        <div className="absolute top-[-60px] left-6 opacity-[0.08] pointer-events-none select-none">
+          <img src="/watermark.png" alt="Watermark" className="w-72 object-contain grayscale brightness-0 invert-0" />
+        </div>
 
-      <div className="p-10 md:p-16 print:p-16 flex flex-col min-h-[inherit] relative z-10">
-        <div className="flex justify-between items-start mb-10">
-          <div>
-            <h1 className="text-4xl font-bold tracking-tighter mb-2 uppercase">Invoice</h1>
-            <p className="text-slate-500 font-bold text-sm tracking-widest">
-              #{("id" in formData ? formData.id : "").slice(-6) || "000000"}
+        <div className="p-10 md:p-16 print:p-16 flex flex-col min-h-[inherit] relative z-10">
+          <div className="flex justify-between items-start mb-10">
+            <div>
+              <h1 className="text-4xl font-bold tracking-tighter mb-2 uppercase">Invoice</h1>
+              <p className="text-slate-500 font-bold text-sm tracking-wider uppercase">
+                #DCT-{("id" in formData ? formData.id : "").slice(-6).toUpperCase() || "000000"}
+              </p>
+            </div>
+            <div className="text-right">
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-1">Tanggal Tagihan</p>
+              <p className="text-black font-bold text-base tracking-tight">{formatDisplayDate(new Date().toISOString())}</p>
+            </div>
+          </div>
+
+          {/* Bill To */}
+          <div className="mb-10">
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-2">Ditujukan Kepada:</p>
+            <h3 className="font-bold text-xl tracking-tight mb-1">{formData.clientName || "[Nama Client]"}</h3>
+            <p className="text-slate-500 text-sm font-medium">Project: {formData.projectName || "[Nama Project]"}</p>
+          </div>
+
+          {/* Invoice Table */}
+          <div className="mb-16">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="border-b-2 border-black">
+                  <th className="py-4 text-xs font-bold uppercase tracking-[0.2em]">Rincian Pekerjaan / Layanan</th>
+                </tr>
+              </thead>
+              <tbody>
+                {formData.description ? (
+                  formData.description.split("\n").filter(l => l.trim() !== "").map((line, idx) => (
+                    <tr key={idx} className="border-b border-slate-100">
+                      <td className="py-3.5 text-slate-700 font-medium">{line}</td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr className="border-b border-slate-100">
+                    <td className="py-5 text-slate-400 italic">Pekerjaan: {formData.projectName}</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+            <div className="mt-8 text-right space-y-4">
+              {/* Payment breakdown logic */}
               {(() => {
                 const b = getPaymentBreakdown();
-                if (b.isTerminInvoice) return ` / T${b.currentTermin}`;
-                if (b.isDPInvoice) return ` / DP`;
-                if (b.isRemainingInvoice) return ` / LUNAS`;
-                return "";
+                if (b.type === "DP") {
+                  if (b.isDPInvoice) {
+                    return (
+                      <div className="space-y-1 pb-2 border-b border-slate-100">
+                        <div className="flex justify-end items-center gap-4 text-slate-500">
+                          {/* <span className="text-[10px] font-bold uppercase tracking-widest">Keterangan</span> */}
+                          <span className="font-bold text-sm text-black">Tagihan Uang Muka (DP {b.percent})</span>
+                        </div>
+                        <div className="flex justify-end items-center gap-4 text-slate-500">
+                          <span className="text-[10px] font-bold uppercase tracking-widest">Total Project</span>
+                          <span className="font-bold text-sm text-slate-400">Rp {formData.price}</span>
+                        </div>
+                      </div>
+                    );
+                  }
+                  if (b.isRemainingInvoice) {
+                    return (
+                      <div className="space-y-1 pb-2 border-b border-slate-100">
+                        <div className="flex justify-end items-center gap-4 text-slate-500">
+                          <span className="text-[10px] font-bold uppercase tracking-widest">Keterangan</span>
+                          <span className="font-bold text-sm text-black">Tagihan Pelunasan Project</span>
+                        </div>
+                        <div className="flex justify-end items-center gap-4 text-slate-500">
+                          <span className="text-[10px] font-bold uppercase tracking-widest">Sudah Dibayar (DP)</span>
+                          <span className="font-bold text-sm text-slate-400">Rp {formatPrice(b.dp)}</span>
+                        </div>
+                      </div>
+                    );
+                  }
+                  return (
+                    <div className="space-y-1">
+                      <div className="flex justify-end items-center gap-4 text-slate-500">
+                        <span className="text-[10px] font-bold uppercase tracking-widest">Uang Muka (DP {b.percent})</span>
+                        <span className="font-bold text-sm">Rp {formatPrice(b.dp)}</span>
+                      </div>
+                      <div className="flex justify-end items-center gap-4 text-slate-500 pb-2 border-b border-slate-100">
+                        <span className="text-[10px] font-bold uppercase tracking-widest">Sisa Pelunasan</span>
+                        <span className="font-bold text-sm">Rp {formatPrice(b.remaining)}</span>
+                      </div>
+                    </div>
+                  );
+                }
+                if (b.type === "TERMIN") {
+                  if (b.isTerminInvoice) {
+                    return (
+                      <div className="space-y-1 pb-2 border-b border-slate-100">
+                        <div className="flex justify-end items-center gap-4 text-slate-500">
+                          {/* <span className="text-[10px] font-bold uppercase tracking-widest">Keterangan</span> */}
+                          <span className="font-bold text-sm">Pembayaran ke-{b.currentTermin} dari {b.count}</span>
+                        </div>
+                        <div className="flex justify-end items-center gap-4 text-slate-500">
+                          <span className="text-[10px] font-bold uppercase tracking-widest">Total Pembayaran</span>
+                          <span className="font-bold text-sm text-slate-400">Rp {formData.price}</span>
+                        </div>
+                      </div>
+                    );
+                  }
+                  return (
+                    <div className="space-y-1 pb-2 border-b border-slate-100">
+                      <div className="flex justify-end items-center gap-4 text-slate-500">
+                        <span className="text-[10px] font-bold uppercase tracking-widest">Jumlah Termin</span>
+                        <span className="font-bold text-sm">{b.count}x</span>
+                      </div>
+                      <div className="flex justify-end items-center gap-4 text-slate-500">
+                        <span className="text-[10px] font-bold uppercase tracking-widest">Per Termin</span>
+                        <span className="font-bold text-sm">Rp {formatPrice(b.perTermin)}</span>
+                      </div>
+                    </div>
+                  );
+                }
+                return null;
               })()}
-            </p>
-          </div>
-          <div className="text-right">
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-1">Tanggal Tagihan</p>
-            <p className="text-black font-bold text-base tracking-tight">{formatDisplayDate(new Date().toISOString())}</p>
-          </div>
-        </div>
-
-        {/* Bill To */}
-        <div className="mb-10">
-          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-2">Ditujukan Kepada:</p>
-          <h3 className="font-bold text-xl tracking-tight mb-1">{formData.clientName || "[Nama Client]"}</h3>
-          <p className="text-slate-500 text-sm font-medium">Project: {formData.projectName || "[Nama Project]"}</p>
-        </div>
-
-        {/* Invoice Table */}
-        <div className="mb-16">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="border-b-2 border-black">
-                <th className="py-4 text-xs font-bold uppercase tracking-[0.2em]">Rincian Pekerjaan / Layanan</th>
-              </tr>
-            </thead>
-            <tbody>
-              {formData.description ? (
-                formData.description.split("\n").filter(l => l.trim() !== "").map((line, idx) => (
-                  <tr key={idx} className="border-b border-slate-100">
-                    <td className="py-3.5 text-slate-700 font-medium">{line}</td>
-                  </tr>
-                ))
-              ) : (
-                <tr className="border-b border-slate-100">
-                  <td className="py-5 text-slate-400 italic">Pekerjaan: {formData.projectName}</td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-          <div className="mt-8 text-right space-y-4">
-            {/* Payment breakdown logic */}
-            {(() => {
-              const b = getPaymentBreakdown();
-              if (b.type === "DP") {
-                if (b.isDPInvoice) {
-                  return (
-                    <div className="space-y-1 pb-2 border-b border-slate-100">
-                      <div className="flex justify-end items-center gap-4 text-slate-500">
-                        {/* <span className="text-[10px] font-bold uppercase tracking-widest">Keterangan</span> */}
-                        <span className="font-bold text-sm text-black">Tagihan Uang Muka (DP {b.percent})</span>
-                      </div>
-                      <div className="flex justify-end items-center gap-4 text-slate-500">
-                        <span className="text-[10px] font-bold uppercase tracking-widest">Total Project</span>
-                        <span className="font-bold text-sm text-slate-400">Rp {formData.price}</span>
-                      </div>
-                    </div>
-                  );
-                }
-                if (b.isRemainingInvoice) {
-                  return (
-                    <div className="space-y-1 pb-2 border-b border-slate-100">
-                      <div className="flex justify-end items-center gap-4 text-slate-500">
-                        <span className="text-[10px] font-bold uppercase tracking-widest">Keterangan</span>
-                        <span className="font-bold text-sm text-black">Tagihan Pelunasan Project</span>
-                      </div>
-                      <div className="flex justify-end items-center gap-4 text-slate-500">
-                        <span className="text-[10px] font-bold uppercase tracking-widest">Sudah Dibayar (DP)</span>
-                        <span className="font-bold text-sm text-slate-400">Rp {formatPrice(b.dp)}</span>
-                      </div>
-                    </div>
-                  );
-                }
-                return (
-                  <div className="space-y-1">
-                    <div className="flex justify-end items-center gap-4 text-slate-500">
-                      <span className="text-[10px] font-bold uppercase tracking-widest">Uang Muka (DP {b.percent})</span>
-                      <span className="font-bold text-sm">Rp {formatPrice(b.dp)}</span>
-                    </div>
-                    <div className="flex justify-end items-center gap-4 text-slate-500 pb-2 border-b border-slate-100">
-                      <span className="text-[10px] font-bold uppercase tracking-widest">Sisa Pelunasan</span>
-                      <span className="font-bold text-sm">Rp {formatPrice(b.remaining)}</span>
-                    </div>
-                  </div>
-                );
-              }
-              if (b.type === "TERMIN") {
-                if (b.isTerminInvoice) {
-                  return (
-                    <div className="space-y-1 pb-2 border-b border-slate-100">
-                      <div className="flex justify-end items-center gap-4 text-slate-500">
-                        {/* <span className="text-[10px] font-bold uppercase tracking-widest">Keterangan</span> */}
-                        <span className="font-bold text-sm">Pembayaran ke-{b.currentTermin} dari {b.count}</span>
-                      </div>
-                      <div className="flex justify-end items-center gap-4 text-slate-500">
-                        <span className="text-[10px] font-bold uppercase tracking-widest">Total Pembayaran</span>
-                        <span className="font-bold text-sm text-slate-400">Rp {formData.price}</span>
-                      </div>
-                    </div>
-                  );
-                }
-                return (
-                  <div className="space-y-1 pb-2 border-b border-slate-100">
-                    <div className="flex justify-end items-center gap-4 text-slate-500">
-                      <span className="text-[10px] font-bold uppercase tracking-widest">Jumlah Termin</span>
-                      <span className="font-bold text-sm">{b.count}x</span>
-                    </div>
-                    <div className="flex justify-end items-center gap-4 text-slate-500">
-                      <span className="text-[10px] font-bold uppercase tracking-widest">Per Termin</span>
-                      <span className="font-bold text-sm">Rp {formatPrice(b.perTermin)}</span>
-                    </div>
-                  </div>
-                );
-              }
-              return null;
-            })()}
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-slate-400 mb-1">
-                {(() => {
-                  const b = getPaymentBreakdown();
-                  if (b.isTerminInvoice) return `Tagihan Termin ${b.currentTermin}`;
-                  if (b.isDPInvoice) return `Tagihan Uang Muka`;
-                  if (b.isRemainingInvoice) return `Tagihan Pelunasan`;
-                  return "Total Tagihan";
-                })()}
-              </p>
-              <p className="text-3xl font-bold tracking-tighter text-black">
-                Rp {(() => {
-                  const b = getPaymentBreakdown();
-                  if (b.isTerminInvoice) return formatPrice(b.perTermin);
-                  if (b.isDPInvoice) return formatPrice(b.dp);
-                  if (b.isRemainingInvoice) return formatPrice(b.remaining);
-                  return (formData.price || "0");
-                })()}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Footer */}
-        <div className="mt-auto pt-8 border-t-2 border-black flex justify-between items-end">
-          <div className="space-y-4 text-left">
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.3em]">Metode Pembayaran</p>
-            <div className="space-y-1">
-              <p className="text-[10px] font-semibold text-black uppercase tracking-tight">Bank BCA</p>
-              <p className="text-2xl font-bold tracking-tighter text-black">5475 5175 87</p>
-              <p className="text-xs font-medium text-slate-500">a/n Faiz Dawami</p>
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-slate-400 mb-1">
+                  {(() => {
+                    const b = getPaymentBreakdown();
+                    if (b.isTerminInvoice) return `Tagihan Termin ${b.currentTermin}`;
+                    if (b.isDPInvoice) return `Tagihan Uang Muka`;
+                    if (b.isRemainingInvoice) return `Tagihan Pelunasan`;
+                    return "Total Tagihan";
+                  })()}
+                </p>
+                <p className="text-3xl font-bold tracking-tighter text-black">
+                  Rp {(() => {
+                    const b = getPaymentBreakdown();
+                    if (b.isTerminInvoice) return formatPrice(b.perTermin);
+                    if (b.isDPInvoice) return formatPrice(b.dp);
+                    if (b.isRemainingInvoice) return formatPrice(b.remaining);
+                    return (formData.price || "0");
+                  })()}
+                </p>
+              </div>
             </div>
           </div>
 
-          <div className="text-center min-w-[200px]">
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.3em] mb-16">Hormat Kami</p>
-            <div className="border-t border-black pt-3">
-              <p className="font-semibold text-black tracking-tight">{formData.freelancerName || "[Nama Freelancer]"}</p>
+          {/* STATUS STAMP (PAID/UNPAID) */}
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none z-0 overflow-hidden">
+            <div className={`border-8 font-black text-7xl px-10 py-5 rounded-[2.5rem] rotate-[-25deg] uppercase tracking-[0.2em] flex flex-col items-center leading-none scale-100 print:scale-95 ${isInvoicePaid ? 'border-emerald-500/10 text-emerald-500/12' : 'border-rose-500/12 text-rose-500/12'}`}>
+              <span>{isInvoicePaid ? 'Paid' : 'Unpaid'}</span>
+              <span className="text-lg mt-3 tracking-[0.4em] opacity-60 italic font-bold">{isInvoicePaid ? 'Verified by Dicatat' : 'Pending Payment'}</span>
+            </div>
+          </div>
+
+          {/* Footer */}
+          <div className="mt-auto pt-8 border-t-2 border-black flex justify-between items-end">
+            <div className="space-y-4 text-left">
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.3em]">Metode Pembayaran</p>
+              <div className="space-y-1">
+                <p className="text-[10px] font-semibold text-black uppercase tracking-tight">Bank BCA</p>
+                <p className="text-2xl font-bold tracking-tighter text-black">5475 5175 87</p>
+                <p className="text-xs font-medium text-slate-500">a/n Faiz Dawami</p>
+              </div>
+            </div>
+
+            <div className="text-center min-w-[200px]">
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.3em] mb-16">Hormat Kami</p>
+              <div className="border-t border-black pt-3">
+                <p className="font-semibold text-black tracking-tight">{formData.freelancerName || "[Nama Freelancer]"}</p>
+              </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   const DocumentPaper = () => (
     <div className="max-w-[210mm] mx-auto bg-white shadow-xl print-paper text-slate-900 text-[14px] leading-relaxed print:shadow-none print:max-w-none font-sans print:font-sans relative">
@@ -1074,16 +1081,18 @@ export default function Dashboard() {
                             <p className="font-bold text-slate-900 tracking-tight">Rp {project.price || "0"}</p>
                           </div>
                           <div className="flex items-center gap-3">
-                            {getProjectStatus(project) === "Finish" && (
-                              <button
-                                onClick={() => handleInvoice(project)}
-                                className="text-emerald-600 hover:text-emerald-700 text-sm font-bold flex items-center gap-1 transition-colors"
-                                title="Invoice"
-                              >
-                                <ReceiptText size={14} />
-                                Invoice
-                              </button>
-                            )}
+                            <button
+                              onClick={() => handleInvoice(project)}
+                              className={`text-sm font-bold flex items-center gap-1 transition-colors ${
+                                getProjectStatus(project) === "Finish" ? "text-emerald-600 hover:text-emerald-700" :
+                                (project.isDPPaid || getProjectStatus(project).includes("Termin")) ? "text-blue-600 hover:text-blue-700" :
+                                "text-slate-600 hover:text-black"
+                              }`}
+                              title="Invoice"
+                            >
+                              <ReceiptText size={14} />
+                              Invoice
+                            </button>
                             <button
                               onClick={() => handlePreview(project)}
                               className="text-slate-400 hover:text-black transition-colors p-1.5"
@@ -1191,9 +1200,16 @@ export default function Dashboard() {
                                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Tahap 1: Uang Muka</p>
                                     <p className="text-sm font-bold text-slate-800">DP {project.paymentDetails || "___"}</p>
                                   </div>
-                                  <div className="flex items-center gap-3">
+                                  <div className="flex items-center gap-2">
+                                    <button
+                                      onClick={() => handlePrintDP(project, "DP")}
+                                      className="w-10 h-10 flex items-center justify-center bg-black text-white rounded-lg hover:bg-slate-800 transition-colors"
+                                      title="Cetak Invoice DP"
+                                    >
+                                      <Printer size={16} />
+                                    </button>
                                     {project.isDPPaid ? (
-                                      <div className="flex items-center gap-2">
+                                      <>
                                         <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 text-emerald-600 rounded-lg border border-emerald-100">
                                           <CheckCircle size={14} />
                                           <span className="text-xs font-bold uppercase tracking-wider">Paid</span>
@@ -1212,16 +1228,10 @@ export default function Dashboard() {
                                         >
                                           <Eye size={18} />
                                         </button>
-                                      </div>
+                                      </>
                                     ) : (
                                       <div className="flex flex-wrap items-center gap-2">
-                                        <button
-                                          onClick={() => handlePrintDP(project, "DP")}
-                                          className="w-10 h-10 flex items-center justify-center bg-black text-white rounded-lg hover:bg-slate-800 transition-colors"
-                                          title="Cetak Invoice DP"
-                                        >
-                                          <Printer size={16} />
-                                        </button>
+
                                         <UploadButton
                                           endpoint="proofUploader"
                                           onUploadProgress={(p) => setUploadingProgress(prev => ({ ...prev, [`${project.id}-dp`]: p }))}
@@ -1264,9 +1274,16 @@ export default function Dashboard() {
                                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Tahap 2: Pelunasan</p>
                                     <p className="text-sm font-bold text-slate-800">Sisa Pembayaran (Full)</p>
                                   </div>
-                                  <div className="flex items-center gap-3">
+                                  <div className="flex items-center gap-2">
+                                    <button
+                                      onClick={() => handlePrintDP(project, "REMAINING")}
+                                      className="w-10 h-10 flex items-center justify-center bg-black text-white rounded-lg hover:bg-slate-800 transition-colors"
+                                      title="Cetak Pelunasan"
+                                    >
+                                      <Printer size={16} />
+                                    </button>
                                     {project.isRemainingPaid ? (
-                                      <div className="flex items-center gap-2">
+                                      <>
                                         <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 text-emerald-600 rounded-lg border border-emerald-100">
                                           <CheckCircle size={14} />
                                           <span className="text-xs font-bold uppercase tracking-wider">Paid</span>
@@ -1285,16 +1302,10 @@ export default function Dashboard() {
                                         >
                                           <Eye size={18} />
                                         </button>
-                                      </div>
+                                      </>
                                     ) : (
                                       <div className="flex flex-wrap items-center gap-2">
-                                        <button
-                                          onClick={() => handlePrintDP(project, "REMAINING")}
-                                          className="w-10 h-10 flex items-center justify-center bg-black text-white rounded-lg hover:bg-slate-800 transition-colors"
-                                          title="Cetak Pelunasan"
-                                        >
-                                          <Printer size={16} />
-                                        </button>
+
                                         <UploadButton
                                           endpoint="proofUploader"
                                           onUploadProgress={(p) => setUploadingProgress(prev => ({ ...prev, [`${project.id}-rem`]: p }))}
@@ -1354,9 +1365,16 @@ export default function Dashboard() {
                                         </div>
                                       </div>
 
-                                      <div className="flex items-center gap-3">
+                                      <div className="flex items-center gap-2">
+                                        <button
+                                          onClick={() => handlePrintTermin(project, num)}
+                                          className="w-10 h-10 flex items-center justify-center bg-black text-white rounded-lg hover:bg-slate-800 transition-colors"
+                                          title={`Cetak Invoice Termin ${num}`}
+                                        >
+                                          <Printer size={16} />
+                                        </button>
                                         {isPaid ? (
-                                          <div className="flex items-center gap-2">
+                                          <>
                                             <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 text-emerald-600 rounded-lg border border-emerald-100">
                                               <CheckCircle size={14} />
                                               <span className="text-xs font-bold uppercase tracking-wider">Paid</span>
@@ -1375,43 +1393,34 @@ export default function Dashboard() {
                                             >
                                               <Eye size={18} />
                                             </button>
-                                          </div>
+                                          </>
                                         ) : (
-                                          <div className="flex items-center gap-2">
-                                            <button
-                                              onClick={() => handlePrintTermin(project, num)}
-                                              className="w-10 h-10 flex items-center justify-center bg-black text-white rounded-lg hover:bg-slate-800 transition-colors"
-                                              title="Cetak Invoice"
-                                            >
-                                              <Printer size={16} />
-                                            </button>
-                                            <UploadButton
-                                              endpoint="proofUploader"
-                                              onUploadProgress={(p) => setUploadingProgress(prev => ({ ...prev, [`${project.id}-t-${num}`]: p }))}
-                                              onClientUploadComplete={(res: any[]) => {
-                                                setUploadingProgress(prev => {
-                                                  const next = { ...prev };
-                                                  delete next[`${project.id}-t-${num}`];
-                                                  return next;
-                                                });
-                                                if (res?.[0]) toggleTerminPaid(project.id, num, res[0].url);
-                                              }}
-                                              onUploadError={(err: Error) => {
-                                                setUploadingProgress(prev => {
-                                                  const next = { ...prev };
-                                                  delete next[`${project.id}-t-${num}`];
-                                                  return next;
-                                                });
-                                                alert(err.message);
-                                              }}
-                                              content={{ button: <Upload size={16} />, allowedContent: null }}
-                                              appearance={{
-                                                button: "p-0 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors after:hidden focus-within:ring-0 w-10 h-10 flex items-center justify-center text-[0px] [&_*]:text-[0px]",
-                                                allowedContent: "hidden",
-                                                container: "w-10 h-10"
-                                              }}
-                                            />
-                                          </div>
+                                          <UploadButton
+                                            endpoint="proofUploader"
+                                            onUploadProgress={(p) => setUploadingProgress(prev => ({ ...prev, [`${project.id}-t-${num}`]: p }))}
+                                            onClientUploadComplete={(res: any[]) => {
+                                              setUploadingProgress(prev => {
+                                                const next = { ...prev };
+                                                delete next[`${project.id}-t-${num}`];
+                                                return next;
+                                              });
+                                              if (res?.[0]) toggleTerminPaid(project.id, num, res[0].url);
+                                            }}
+                                            onUploadError={(err: Error) => {
+                                              setUploadingProgress(prev => {
+                                                const next = { ...prev };
+                                                delete next[`${project.id}-t-${num}`];
+                                                return next;
+                                              });
+                                              alert(err.message);
+                                            }}
+                                            content={{ button: <Upload size={16} />, allowedContent: null }}
+                                            appearance={{
+                                              button: "p-0 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors after:hidden focus-within:ring-0 w-10 h-10 flex items-center justify-center text-[0px] [&_*]:text-[0px]",
+                                              allowedContent: "hidden",
+                                              container: "w-10 h-10"
+                                            }}
+                                          />
                                         )}
                                       </div>
                                     </div>
@@ -1432,9 +1441,16 @@ export default function Dashboard() {
                                   <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Pembayaran Penuh</p>
                                   <p className="text-sm font-bold text-slate-800">Total Rp {project.price}</p>
                                 </div>
-                                <div className="flex items-center gap-3">
+                                <div className="flex items-center gap-2">
+                                  <button
+                                    onClick={() => handlePrintTermin(project, 0)}
+                                    className="w-10 h-10 flex items-center justify-center bg-black text-white rounded-lg hover:bg-slate-800 transition-colors"
+                                    title="Cetak Invoice"
+                                  >
+                                    <Printer size={16} />
+                                  </button>
                                   {project.isPaid ? (
-                                    <div className="flex items-center gap-2">
+                                    <>
                                       <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 text-emerald-600 rounded-lg border border-emerald-100 h-10">
                                         <CheckCircle size={14} />
                                         <span className="text-xs font-bold uppercase tracking-wider">Paid</span>
@@ -1453,20 +1469,10 @@ export default function Dashboard() {
                                       >
                                         <Eye size={18} />
                                       </button>
-                                    </div>
+                                    </>
                                   ) : (
                                     <div className="flex flex-wrap items-center gap-2">
-                                      <button
-                                        onClick={() => {
-                                          setFormData(project);
-                                          setSelectedTermin(null);
-                                          setView("INVOICE");
-                                        }}
-                                        className="w-10 h-10 flex items-center justify-center bg-black text-white rounded-lg hover:bg-slate-800 transition-colors"
-                                        title="Cetak Invoice Full"
-                                      >
-                                        <Printer size={16} />
-                                      </button>
+
                                       <UploadButton
                                         endpoint="proofUploader"
                                         onUploadProgress={(p) => setUploadingProgress(prev => ({ ...prev, [`${project.id}-full`]: p }))}
