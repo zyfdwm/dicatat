@@ -173,7 +173,7 @@ export default function LandingPage() {
                     </div>
                     <div className="space-y-1">
                       <p className="text-[7px] font-bold text-slate-400 uppercase tracking-widest">Pihak Kedua (Freelancer)</p>
-                      <p className="text-[10px] font-bold text-slate-900">Faiz Dawami (Dicatat User)</p>
+                      <p className="text-[10px] font-bold text-slate-900">Nama Anda</p>
                     </div>
                   </div>
 

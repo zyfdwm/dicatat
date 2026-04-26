@@ -821,274 +821,276 @@ export default function Dashboard() {
               className={`pb-4 text-sm font-bold transition-all relative whitespace-nowrap ${dashboardTab === "PROJECT" ? "text-black" : "text-slate-400 hover:text-slate-600"}`}
             >
               Daftar Project
-              {dashboardTab === "PROJECT" && <div className="absolute bottom-0 left-0 w-full h-0.5 bg-black animate-in fade-in slide-in-from-left-2" />}
+              {dashboardTab === "PROJECT" && <div className="absolute bottom-0 left-0 w-full h-0.5 bg-black" />}
             </button>
             <button
               onClick={() => setDashboardTab("GRAPHIC")}
               className={`pb-4 text-sm font-bold transition-all relative whitespace-nowrap ${dashboardTab === "GRAPHIC" ? "text-black" : "text-slate-400 hover:text-slate-600"}`}
             >
               Statistik & Grafik
-              {dashboardTab === "GRAPHIC" && <div className="absolute bottom-0 left-0 w-full h-0.5 bg-black animate-in fade-in slide-in-from-right-2" />}
+              {dashboardTab === "GRAPHIC" && <div className="absolute bottom-0 left-0 w-full h-0.5 bg-black" />}
             </button>
           </div>
 
-          {dashboardTab === "GRAPHIC" && (
-            <>
-              {/* Stats Overview */}
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="w-8 h-8 bg-slate-50 rounded-lg flex items-center justify-center text-slate-400">
-                      <Briefcase size={16} />
-                    </div>
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Total Project</span>
-                  </div>
-                  <p className="text-2xl font-bold text-black">{stats.total}</p>
-                </div>
-
-                <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="w-8 h-8 bg-emerald-50 rounded-lg flex items-center justify-center text-emerald-500">
-                      <CheckCircle size={16} />
-                    </div>
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Selesai</span>
-                  </div>
-                  <p className="text-2xl font-bold text-black">{stats.done}</p>
-                </div>
-
-                <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="w-8 h-8 bg-amber-50 rounded-lg flex items-center justify-center text-amber-500">
-                      <Activity size={16} />
-                    </div>
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Ongoing</span>
-                  </div>
-                  <p className="text-2xl font-bold text-black">{stats.onGoing}</p>
-                </div>
-
-                <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="w-8 h-8 bg-black rounded-lg flex items-center justify-center text-white">
-                      <DollarSign size={16} />
-                    </div>
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Estimasi Pendapatan</span>
-                  </div>
-                  <p className="text-2xl font-bold text-black">Rp {formatPrice(stats.totalRevenue)}</p>
-                </div>
-              </div>
-
-              {/* Chart Section */}
-              {projects.length > 0 && (
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-12 animate-in fade-in slide-in-from-bottom-8 duration-700">
-                  <div className="lg:col-span-2 bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
-                    <div className="flex justify-between items-center mb-6">
-                      <div>
-                        <h3 className="font-bold text-slate-900 tracking-tight">Aktivitas Project</h3>
-                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">6 Bulan Terakhir</p>
+          <div className="relative min-h-[400px]">
+            {dashboardTab === "GRAPHIC" && (
+              <div>
+                {/* Stats Overview */}
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                  <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="w-8 h-8 bg-slate-50 rounded-lg flex items-center justify-center text-slate-400">
+                        <Briefcase size={16} />
                       </div>
-                      <TrendingUp size={20} className="text-slate-300" />
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Total Project</span>
                     </div>
-                    <div className="h-[240px] w-full min-w-0">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <AreaChart data={getChartData()}>
-                          <defs>
-                            <linearGradient id="colorProjects" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="5%" stopColor="#000" stopOpacity={0.1} />
-                              <stop offset="95%" stopColor="#000" stopOpacity={0} />
-                            </linearGradient>
-                          </defs>
-                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                          <XAxis
-                            dataKey="month"
-                            axisLine={false}
-                            tickLine={false}
-                            tick={{ fontSize: 10, fontWeight: 600, fill: '#94a3b8' }}
-                            dy={10}
-                          />
-                          <YAxis
-                            axisLine={false}
-                            tickLine={false}
-                            tick={{ fontSize: 10, fontWeight: 600, fill: '#94a3b8' }}
-                          />
-                          <Tooltip
-                            contentStyle={{ borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', fontSize: '12px' }}
-                            cursor={{ stroke: '#000', strokeWidth: 1 }}
-                          />
-                          <Area
-                            type="monotone"
-                            dataKey="completed"
-                            stroke="#10b981"
-                            strokeWidth={2}
-                            fillOpacity={1}
-                            fill="transparent"
-                            name="Selesai"
-                          />
-                          <Area
-                            type="monotone"
-                            dataKey="onGoing"
-                            stroke="#f59e0b"
-                            strokeWidth={2}
-                            strokeDasharray="5 5"
-                            fillOpacity={1}
-                            fill="transparent"
-                            name="Ongoing"
-                          />
-                          <Area
-                            type="monotone"
-                            dataKey="projects"
-                            stroke="#000"
-                            strokeWidth={2}
-                            fillOpacity={1}
-                            fill="url(#colorProjects)"
-                            name="Total"
-                          />
-                        </AreaChart>
-                      </ResponsiveContainer>
-                    </div>
+                    <p className="text-2xl font-bold text-black">{stats.total}</p>
                   </div>
-
-                  <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm flex flex-col">
-                    <div className="flex justify-between items-center mb-6">
-                      <div>
-                        <h3 className="font-bold text-slate-900 tracking-tight">Ringkasan Pendapatan</h3>
-                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Total Diterima</p>
+  
+                  <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="w-8 h-8 bg-emerald-50 rounded-lg flex items-center justify-center text-emerald-500">
+                        <CheckCircle size={16} />
                       </div>
-                      <BarChart3 size={20} className="text-slate-300" />
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Selesai</span>
                     </div>
-                    <div className="flex-1 flex flex-col justify-center">
-                      <div className="py-6 border-b border-slate-50">
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Pendapatan Diterima</p>
-                        <p className="text-3xl font-bold text-black tracking-tighter">Rp {formatPrice(stats.earnedRevenue)}</p>
-                        <p className="text-[10px] text-slate-400 font-medium mt-2">Dari project yang selesai</p>
+                    <p className="text-2xl font-bold text-black">{stats.done}</p>
+                  </div>
+  
+                  <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="w-8 h-8 bg-amber-50 rounded-lg flex items-center justify-center text-amber-500">
+                        <Activity size={16} />
                       </div>
-                      <div className="mt-6 space-y-5">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Ongoing</span>
+                    </div>
+                    <p className="text-2xl font-bold text-black">{stats.onGoing}</p>
+                  </div>
+  
+                  <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="w-8 h-8 bg-black rounded-lg flex items-center justify-center text-white">
+                        <DollarSign size={16} />
+                      </div>
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Estimasi Pendapatan</span>
+                    </div>
+                    <p className="text-2xl font-bold text-black">Rp {formatPrice(stats.totalRevenue)}</p>
+                  </div>
+                </div>
+  
+                {/* Chart Section */}
+                {projects.length > 0 && (
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-12">
+                    <div className="lg:col-span-2 bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+                      <div className="flex justify-between items-center mb-6">
                         <div>
-                          <div className="flex justify-between text-[10px] font-bold uppercase tracking-widest mb-2">
-                            <span className="text-emerald-600">Selesai ({stats.done})</span>
-                            <span>{Math.round((stats.done / (stats.total || 1)) * 100)}%</span>
-                          </div>
-                          <div className="h-1.5 w-full bg-slate-50 rounded-full overflow-hidden">
-                            <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${(stats.done / (stats.total || 1)) * 100}%` }}></div>
-                          </div>
+                          <h3 className="font-bold text-slate-900 tracking-tight">Aktivitas Project</h3>
+                          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">6 Bulan Terakhir</p>
                         </div>
-                        <div>
-                          <div className="flex justify-between text-[10px] font-bold uppercase tracking-widest mb-2">
-                            <span className="text-amber-600">Ongoing ({stats.onGoing})</span>
-                            <span>{Math.round((stats.onGoing / (stats.total || 1)) * 100)}%</span>
-                          </div>
-                          <div className="h-1.5 w-full bg-slate-50 rounded-full overflow-hidden">
-                            <div className="h-full bg-amber-500 rounded-full" style={{ width: `${(stats.onGoing / (stats.total || 1)) * 100}%` }}></div>
-                          </div>
-                        </div>
+                        <TrendingUp size={20} className="text-slate-300" />
+                      </div>
+                      <div className="h-[240px] w-full min-w-0">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <AreaChart data={getChartData()}>
+                            <defs>
+                              <linearGradient id="colorProjects" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stopColor="#000" stopOpacity={0.1} />
+                                <stop offset="95%" stopColor="#000" stopOpacity={0} />
+                              </linearGradient>
+                            </defs>
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                            <XAxis
+                              dataKey="month"
+                              axisLine={false}
+                              tickLine={false}
+                              tick={{ fontSize: 10, fontWeight: 600, fill: '#94a3b8' }}
+                              dy={10}
+                            />
+                            <YAxis
+                              axisLine={false}
+                              tickLine={false}
+                              tick={{ fontSize: 10, fontWeight: 600, fill: '#94a3b8' }}
+                            />
+                            <Tooltip
+                              contentStyle={{ borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', fontSize: '12px' }}
+                              cursor={{ stroke: '#000', strokeWidth: 1 }}
+                            />
+                            <Area
+                              type="monotone"
+                              dataKey="completed"
+                              stroke="#10b981"
+                              strokeWidth={2}
+                              fillOpacity={1}
+                              fill="transparent"
+                              name="Selesai"
+                            />
+                            <Area
+                              type="monotone"
+                              dataKey="onGoing"
+                              stroke="#f59e0b"
+                              strokeWidth={2}
+                              strokeDasharray="5 5"
+                              fillOpacity={1}
+                              fill="transparent"
+                              name="Ongoing"
+                            />
+                            <Area
+                              type="monotone"
+                              dataKey="projects"
+                              stroke="#000"
+                              strokeWidth={2}
+                              fillOpacity={1}
+                              fill="url(#colorProjects)"
+                              name="Total"
+                            />
+                          </AreaChart>
+                        </ResponsiveContainer>
                       </div>
                     </div>
-                  </div>
-                </div>
-              )}
-            </>
-          )}
-
-          {dashboardTab === "PROJECT" && (
-            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-              {projects.length === 0 ? (
-                <div className="bg-white border border-slate-200 rounded-2xl p-12 md:p-20 text-center shadow-sm">
-                  <div className="w-16 h-16 border border-slate-200 rounded-2xl flex items-center justify-center mx-auto mb-6">
-                    <Briefcase size={28} className="text-slate-300" />
-                  </div>
-                  <h3 className="text-xl font-bold text-slate-900 mb-3 tracking-tight">Belum ada project</h3>
-                  <p className="text-slate-500 mb-8 max-w-sm mx-auto text-sm md:text-base leading-relaxed">
-                    Kamu belum membuat draf project apapun. Mulai buat SPK pertamamu sekarang.
-                  </p>
-                  <button
-                    onClick={handleCreateNew}
-                    className="bg-black hover:bg-slate-800 text-white px-6 py-3 rounded font-medium transition-colors inline-flex items-center gap-2"
-                  >
-                    <Plus size={18} />
-                    Buat Project Baru
-                  </button>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {projects.map((project) => (
-                    <div key={project.id} className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm hover:shadow-md transition-all flex flex-col group relative">
-                      <div className="flex justify-between items-start mb-6">
-                        <div className="relative">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setOpenDropdownId(openDropdownId === project.id ? null : project.id);
-                            }}
-                            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-[10px] font-bold uppercase tracking-wider transition-all border ${getStatusColor(project.status)}`}
-                          >
-                            {project.status}
-                            <ChevronDown size={12} className={`transition-transform duration-200 ${openDropdownId === project.id ? "rotate-180" : ""}`} />
-                          </button>
-
-                          {openDropdownId === project.id && (
-                            <div className="absolute top-full left-0 mt-2 w-40 bg-white border border-slate-200 rounded-xl shadow-xl z-50 py-2 animate-in fade-in slide-in-from-top-2 duration-200">
-                              {["Not Started", "Ongoing", "Done"].map((status) => (
-                                <button
-                                  key={status}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    updateProjectStatus(project.id, status);
-                                    setOpenDropdownId(null);
-                                  }}
-                                  className={`w-full text-left px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider transition-colors hover:bg-slate-50 ${project.status === status ? "text-black" : "text-slate-400"}`}
-                                >
-                                  {status}
-                                </button>
-                              ))}
+  
+                    <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm flex flex-col">
+                      <div className="flex justify-between items-center mb-6">
+                        <div>
+                          <h3 className="font-bold text-slate-900 tracking-tight">Ringkasan Pendapatan</h3>
+                          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Total Diterima</p>
+                        </div>
+                        <BarChart3 size={20} className="text-slate-300" />
+                      </div>
+                      <div className="flex-1 flex flex-col justify-center">
+                        <div className="py-6 border-b border-slate-50">
+                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Pendapatan Diterima</p>
+                          <p className="text-3xl font-bold text-black tracking-tighter">Rp {formatPrice(stats.earnedRevenue)}</p>
+                          <p className="text-[10px] text-slate-400 font-medium mt-2">Dari project yang selesai</p>
+                        </div>
+                        <div className="mt-6 space-y-5">
+                          <div>
+                            <div className="flex justify-between text-[10px] font-bold uppercase tracking-widest mb-2">
+                              <span className="text-emerald-600">Selesai ({stats.done})</span>
+                              <span>{Math.round((stats.done / (stats.total || 1)) * 100)}%</span>
                             </div>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button onClick={() => handleEdit(project)} className="text-slate-400 hover:text-black transition-colors p-1.5" title="Edit">
-                            <Edit size={16} />
-                          </button>
-                          <button onClick={() => handleDelete(project.id)} className="text-slate-400 hover:text-red-600 transition-colors p-1.5" title="Hapus">
-                            <Trash2 size={16} />
-                          </button>
-                        </div>
-                      </div>
-
-                      <h3 className="text-lg font-bold text-slate-900 line-clamp-1 mb-1 tracking-tight">{project.projectName || "Tanpa Nama"}</h3>
-                      <p className="text-slate-500 text-sm mb-6 flex items-center gap-2">
-                        <UserIcon size={14} className="text-slate-300" />
-                        {project.clientName || "Client tidak diketahui"}
-                      </p>
-
-                      <div className="mt-auto pt-6 border-t border-slate-100 flex justify-between items-end">
-                        <div>
-                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Nilai Project</p>
-                          <p className="font-bold text-slate-900 tracking-tight">Rp {project.price || "0"}</p>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          {project.status === "Done" && (
-                            <button
-                              onClick={() => handleInvoice(project)}
-                              className="text-emerald-600 hover:text-emerald-700 text-sm font-bold flex items-center gap-1 transition-colors"
-                              title="Invoice"
-                            >
-                              <ReceiptText size={14} />
-                              Invoice
-                            </button>
-                          )}
-                          <button
-                            onClick={() => handlePreview(project)}
-                            className="text-slate-400 hover:text-black transition-colors p-1.5"
-                            title="Preview"
-                          >
-                            <Eye size={18} />
-                          </button>
+                            <div className="h-1.5 w-full bg-slate-50 rounded-full overflow-hidden">
+                              <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${(stats.done / (stats.total || 1)) * 100}%` }}></div>
+                            </div>
+                          </div>
+                          <div>
+                            <div className="flex justify-between text-[10px] font-bold uppercase tracking-widest mb-2">
+                              <span className="text-amber-600">Ongoing ({stats.onGoing})</span>
+                              <span>{Math.round((stats.onGoing / (stats.total || 1)) * 100)}%</span>
+                            </div>
+                            <div className="h-1.5 w-full bg-slate-50 rounded-full overflow-hidden">
+                              <div className="h-full bg-amber-500 rounded-full" style={{ width: `${(stats.onGoing / (stats.total || 1)) * 100}%` }}></div>
+                            </div>
+                          </div>
                         </div>
                       </div>
                     </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
+                  </div>
+                )}
+              </div>
+            )}
+  
+            {dashboardTab === "PROJECT" && (
+              <div>
+                {projects.length === 0 ? (
+                  <div className="bg-white border border-slate-200 rounded-2xl p-12 md:p-20 text-center shadow-sm">
+                    <div className="w-16 h-16 border border-slate-200 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                      <Briefcase size={28} className="text-slate-300" />
+                    </div>
+                    <h3 className="text-xl font-bold text-slate-900 mb-3 tracking-tight">Belum ada project</h3>
+                    <p className="text-slate-500 mb-8 max-w-sm mx-auto text-sm md:text-base leading-relaxed">
+                      Kamu belum membuat draf project apapun. Mulai buat SPK pertamamu sekarang.
+                    </p>
+                    <button
+                      onClick={handleCreateNew}
+                      className="bg-black hover:bg-slate-800 text-white px-6 py-3 rounded font-medium transition-colors inline-flex items-center gap-2"
+                    >
+                      <Plus size={18} />
+                      Buat Project Baru
+                    </button>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {projects.map((project) => (
+                      <div key={project.id} className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm hover:shadow-md transition-all flex flex-col group relative">
+                        <div className="flex justify-between items-start mb-6">
+                          <div className="relative">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setOpenDropdownId(openDropdownId === project.id ? null : project.id);
+                              }}
+                              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-[10px] font-bold uppercase tracking-wider transition-all border ${getStatusColor(project.status)}`}
+                            >
+                              {project.status}
+                              <ChevronDown size={12} className={`transition-transform duration-200 ${openDropdownId === project.id ? "rotate-180" : ""}`} />
+                            </button>
+  
+                            {openDropdownId === project.id && (
+                              <div className="absolute top-full left-0 mt-2 w-40 bg-white border border-slate-200 rounded-xl shadow-xl z-50 py-2 animate-in fade-in slide-in-from-top-2 duration-200">
+                                {["Not Started", "Ongoing", "Done"].map((status) => (
+                                  <button
+                                    key={status}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      updateProjectStatus(project.id, status);
+                                      setOpenDropdownId(null);
+                                    }}
+                                    className={`w-full text-left px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider transition-colors hover:bg-slate-50 ${project.status === status ? "text-black" : "text-slate-400"}`}
+                                  >
+                                    {status}
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button onClick={() => handleEdit(project)} className="text-slate-400 hover:text-black transition-colors p-1.5" title="Edit">
+                              <Edit size={16} />
+                            </button>
+                            <button onClick={() => handleDelete(project.id)} className="text-slate-400 hover:text-red-600 transition-colors p-1.5" title="Hapus">
+                              <Trash2 size={16} />
+                            </button>
+                          </div>
+                        </div>
+  
+                        <h3 className="text-lg font-bold text-slate-900 line-clamp-1 mb-1 tracking-tight">{project.projectName || "Tanpa Nama"}</h3>
+                        <p className="text-slate-500 text-sm mb-6 flex items-center gap-2">
+                          <UserIcon size={14} className="text-slate-300" />
+                          {project.clientName || "Client tidak diketahui"}
+                        </p>
+  
+                        <div className="mt-auto pt-6 border-t border-slate-100 flex justify-between items-end">
+                          <div>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Nilai Project</p>
+                            <p className="font-bold text-slate-900 tracking-tight">Rp {project.price || "0"}</p>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            {project.status === "Done" && (
+                              <button
+                                onClick={() => handleInvoice(project)}
+                                className="text-emerald-600 hover:text-emerald-700 text-sm font-bold flex items-center gap-1 transition-colors"
+                                title="Invoice"
+                              >
+                                <ReceiptText size={14} />
+                                Invoice
+                              </button>
+                            )}
+                            <button
+                              onClick={() => handlePreview(project)}
+                              className="text-slate-400 hover:text-black transition-colors p-1.5"
+                              title="Preview"
+                            >
+                              <Eye size={18} />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </main>
       </div>
     );
@@ -1102,7 +1104,7 @@ export default function Dashboard() {
     return (
       <div className="min-h-screen bg-[#FBFBFB] font-sans selection:bg-black selection:text-white">
         <header className="border-b border-slate-200 bg-white sticky top-0 z-30">
-          <div className="max-w-4xl mx-auto px-6 h-16 md:h-20 flex items-center justify-between">
+          <div className="max-w-6xl mx-auto px-6 h-16 md:h-20 flex items-center justify-between">
             <button
               onClick={() => setView("LIST")}
               className="flex items-center gap-2 text-slate-500 hover:text-black transition-colors text-sm font-medium"
@@ -1115,7 +1117,7 @@ export default function Dashboard() {
           </div>
         </header>
 
-        <main className="max-w-4xl mx-auto px-6 py-10 md:py-16">
+        <main className="max-w-6xl mx-auto px-6 py-10 md:py-16">
           <div className="mb-10 text-center">
             <h1 className="text-2xl md:text-3xl font-black tracking-tighter mb-2 uppercase">Pilih Project</h1>
             <p className="text-slate-500 text-sm">Kelola Invoice dan Bukti Pembayaran dari Client</p>
@@ -1840,34 +1842,6 @@ export default function Dashboard() {
         <DocumentPaper />
       </div>
 
-      <style jsx global>{`
-        @media print {
-          @page {
-            margin: 0;
-            size: A4;
-          }
-          .no-print {
-            display: none !important;
-          }
-          .print-container {
-            padding: 0 !important;
-            height: auto !important;
-            overflow: visible !important;
-            background: white !important;
-          }
-          .print-paper {
-            box-shadow: none !important;
-            border: none !important;
-            max-width: 100% !important;
-            width: 210mm !important;
-            min-height: 297mm !important;
-            padding: 20mm !important;
-          }
-          body {
-            background: white !important;
-          }
-        }
-      `}</style>
     </div>
   );
 }

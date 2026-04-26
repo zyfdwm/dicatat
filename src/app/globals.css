@@ -5,17 +5,39 @@
   --font-heading: var(--font-plus-jakarta-sans), ui-sans-serif, system-ui, sans-serif;
 }
 
+html {
+  overflow-y: scroll;
+}
+
 h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-heading);
 }
 
 @media print {
+  @page {
+    margin: 0;
+    size: A4;
+  }
   body {
-    background: white;
-    color: black;
+    background: white !important;
+    color: black !important;
   }
   .no-print {
     display: none !important;
+  }
+  .print-container {
+    padding: 0 !important;
+    height: auto !important;
+    overflow: visible !important;
+    background: white !important;
+  }
+  .print-paper {
+    box-shadow: none !important;
+    border: none !important;
+    max-width: 100% !important;
+    width: 210mm !important;
+    min-height: 297mm !important;
+    padding: 20mm !important;
   }
 }
 
