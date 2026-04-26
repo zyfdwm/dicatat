@@ -756,16 +756,16 @@ export default function Dashboard() {
           </section>
         </div>
 
-        <div className="mt-auto pt-8 flex justify-between items-end px-4">
-          <div className="text-center">
-            <p className="mb-14 font-semibold text-black uppercase text-[10px] tracking-widest">Pihak Pertama</p>
-            <div className="border-b-2 border-black w-48 mx-auto mb-2"></div>
-            <p className="font-semibold text-black tracking-tight">{formData.clientName || "[Nama Client]"}</p>
+        <div className="mt-auto pt-8 flex flex-row justify-between items-end gap-2 px-0 md:px-4">
+          <div className="text-center w-1/2 min-w-0">
+            <p className="mb-10 md:mb-14 font-semibold text-black uppercase text-[9px] md:text-[10px] tracking-widest">Pihak Pertama</p>
+            <div className="border-b-2 border-black w-full max-w-[160px] mx-auto mb-2"></div>
+            <p className="font-semibold text-black tracking-tight text-xs md:text-sm truncate px-1">{formData.clientName || "[Nama Client]"}</p>
           </div>
-          <div className="text-center">
-            <p className="mb-14 font-semibold text-black uppercase text-[10px] tracking-widest">Pihak Kedua</p>
-            <div className="border-b-2 border-black w-48 mx-auto mb-2"></div>
-            <p className="font-semibold text-black tracking-tight">{formData.freelancerName || "[Nama Freelancer]"}</p>
+          <div className="text-center w-1/2 min-w-0">
+            <p className="mb-10 md:mb-14 font-semibold text-black uppercase text-[9px] md:text-[10px] tracking-widest">Pihak Kedua</p>
+            <div className="border-b-2 border-black w-full max-w-[160px] mx-auto mb-2"></div>
+            <p className="font-semibold text-black tracking-tight text-xs md:text-sm truncate px-1">{formData.freelancerName || "[Nama Freelancer]"}</p>
           </div>
         </div>
       </div>

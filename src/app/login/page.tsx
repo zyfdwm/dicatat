@@ -40,7 +40,27 @@ export default function AuthPage() {
       }
       router.push("/dashboard");
     } catch (err: any) {
-      setError(err.message || "Terjadi kesalahan. Coba lagi.");
+      console.error("Auth Error:", err.code);
+      
+      if (isLogin) {
+        // Pesan error khusus login
+        if (err.code === "auth/user-not-found" || err.code === "auth/wrong-password" || err.code === "auth/invalid-credential") {
+          setError("Email atau password belum terdaftar / salah.");
+        } else if (err.code === "auth/too-many-requests") {
+          setError("Terlalu banyak percobaan. Coba lagi nanti.");
+        } else {
+          setError("Gagal masuk. Pastikan akun sudah benar.");
+        }
+      } else {
+        // Pesan error khusus daftar
+        if (err.code === "auth/email-already-in-use") {
+          setError("Email sudah terdaftar. Silakan masuk.");
+        } else if (err.code === "auth/weak-password") {
+          setError("Password terlalu lemah (min. 6 karakter).");
+        } else {
+          setError("Gagal membuat akun. Coba lagi.");
+        }
+      }
     } finally {
       setLoading(false);
     }
