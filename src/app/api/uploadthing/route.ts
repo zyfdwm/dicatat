@@ -3,9 +3,4 @@ import { ourFileRouter } from "./core";
 
 export const { GET, POST } = createRouteHandler({
   router: ourFileRouter,
-  config: {
-    token: process.env.UPLOADTHING_TOKEN,
-  },
 });
-
-export const runtime = "edge";
