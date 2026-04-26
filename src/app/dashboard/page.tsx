@@ -815,8 +815,8 @@ export default function Dashboard() {
         <header className="border-b border-slate-200 bg-white sticky top-0 z-30">
           <div className="max-w-6xl mx-auto px-6 h-16 md:h-20 flex justify-between items-center">
             <Link href="/" className="flex items-center gap-3 group">
-              <div className="w-8 h-8 bg-black text-white flex items-center justify-center rounded transition-transform group-hover:rotate-3 overflow-hidden">
-                <img src="/watermark.png" alt="Logo" className="w-full h-full object-cover grayscale brightness-0 invert" />
+              <div className="w-8 h-8 bg-black text-white flex items-center justify-center rounded transition-transform group-hover:rotate-3">
+                <span className="font-bold text-sm tracking-tighter">D.</span>
               </div>
               <span className="text-xl font-bold tracking-tight">Dicatat</span>
             </Link>
