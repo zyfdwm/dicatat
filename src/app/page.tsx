@@ -42,13 +42,6 @@ export default function LandingPage() {
               <>
                 {user ? (
                   <>
-                    <button
-                      onClick={handleLogout}
-                      className="text-sm font-bold text-slate-500 hover:text-red-600 transition-colors flex items-center gap-2"
-                    >
-                      <LogOut size={16} />
-                      Keluar
-                    </button>
                     <Link
                       href="/dashboard"
                       className="bg-black hover:bg-slate-800 text-white px-5 py-2.5 rounded text-sm font-bold transition-all shadow-sm flex items-center gap-2"
@@ -56,6 +49,13 @@ export default function LandingPage() {
                       <LayoutDashboard size={16} />
                       Dashboard
                     </Link>
+                    <button
+                      onClick={handleLogout}
+                      className="text-sm font-bold text-slate-500 hover:text-red-600 transition-colors flex items-center gap-2"
+                    >
+                      <LogOut size={16} />
+                      Keluar
+                    </button>
                   </>
                 ) : (
                   <>

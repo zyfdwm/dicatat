@@ -90,6 +90,12 @@ export default function Dashboard() {
   const [dashboardTab, setDashboardTab] = useState<"PROJECT" | "GRAPHIC">("PROJECT");
   const [isMounted, setIsMounted] = useState(false);
   const [authLoading, setAuthLoading] = useState(true);
+  const [popupMessage, setPopupMessage] = useState<string | null>(null);
+
+  const showPopup = (msg: string) => {
+    setPopupMessage(msg);
+    setTimeout(() => setPopupMessage(null), 3000);
+  };
 
   // Authentication & Real-time Data
   useEffect(() => {
@@ -376,6 +382,7 @@ export default function Dashboard() {
       }
       setFormData(defaultForm);
       setView("LIST");
+      showPopup("Project berhasil disimpan!");
     } catch (e) {
       console.error("Error saving project", e);
       alert("Gagal menyimpan data ke cloud.");
@@ -1110,6 +1117,16 @@ export default function Dashboard() {
             )}
           </div>
         </main>
+
+        {/* Success Popup */}
+        {popupMessage && (
+          <div className="fixed bottom-6 right-6 md:bottom-10 md:right-10 z-50 animate-in fade-in slide-in-from-bottom-8 duration-500">
+            <div className="bg-emerald-600 text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3 border border-emerald-500/50">
+              <CheckCircle size={20} className="text-emerald-100" />
+              <span className="font-bold text-sm tracking-tight">{popupMessage}</span>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -1241,7 +1258,10 @@ export default function Dashboard() {
                                               delete next[`${project.id}-dp`];
                                               return next;
                                             });
-                                            if (res?.[0]) handleDPPaid(project.id, res[0].url);
+                                            if (res?.[0]) {
+                                              handleDPPaid(project.id, res[0].url);
+                                              showPopup("Bukti pembayaran berhasil diupload!");
+                                            }
                                           }}
                                           onUploadError={(err: Error) => {
                                             setUploadingProgress(prev => {
@@ -1315,7 +1335,10 @@ export default function Dashboard() {
                                               delete next[`${project.id}-rem`];
                                               return next;
                                             });
-                                            if (res?.[0]) handleRemainingPaid(project.id, res[0].url);
+                                            if (res?.[0]) {
+                                              handleRemainingPaid(project.id, res[0].url);
+                                              showPopup("Bukti pembayaran berhasil diupload!");
+                                            }
                                           }}
                                           onUploadError={(err: Error) => {
                                             setUploadingProgress(prev => {
@@ -1404,7 +1427,10 @@ export default function Dashboard() {
                                                 delete next[`${project.id}-t-${num}`];
                                                 return next;
                                               });
-                                              if (res?.[0]) toggleTerminPaid(project.id, num, res[0].url);
+                                              if (res?.[0]) {
+                                                toggleTerminPaid(project.id, num, res[0].url);
+                                                showPopup("Bukti pembayaran berhasil diupload!");
+                                              }
                                             }}
                                             onUploadError={(err: Error) => {
                                               setUploadingProgress(prev => {
@@ -1482,7 +1508,10 @@ export default function Dashboard() {
                                             delete next[`${project.id}-full`];
                                             return next;
                                           });
-                                          if (res?.[0]) handleFullPaid(project.id, res[0].url);
+                                          if (res?.[0]) {
+                                            handleFullPaid(project.id, res[0].url);
+                                            showPopup("Bukti pembayaran berhasil diupload!");
+                                          }
                                         }}
                                         onUploadError={(err: Error) => {
                                           setUploadingProgress(prev => {
@@ -1517,6 +1546,16 @@ export default function Dashboard() {
             </div>
           )}
         </main>
+
+        {/* Success Popup */}
+        {popupMessage && (
+          <div className="fixed bottom-6 right-6 md:bottom-10 md:right-10 z-50 animate-in fade-in slide-in-from-bottom-8 duration-500">
+            <div className="bg-emerald-600 text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3 border border-emerald-500/50">
+              <CheckCircle size={20} className="text-emerald-100" />
+              <span className="font-bold text-sm tracking-tight">{popupMessage}</span>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
