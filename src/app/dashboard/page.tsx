@@ -1090,11 +1090,10 @@ export default function Dashboard() {
                           <div className="flex items-center gap-3">
                             <button
                               onClick={() => handleInvoice(project)}
-                              className={`text-sm font-bold flex items-center gap-1 transition-colors ${
-                                getProjectStatus(project) === "Finish" ? "text-emerald-600 hover:text-emerald-700" :
+                              className={`text-sm font-bold flex items-center gap-1 transition-colors ${getProjectStatus(project) === "Finish" ? "text-emerald-600 hover:text-emerald-700" :
                                 (project.isDPPaid || getProjectStatus(project).includes("Termin")) ? "text-blue-600 hover:text-blue-700" :
-                                "text-slate-600 hover:text-black"
-                              }`}
+                                  "text-slate-600 hover:text-black"
+                                }`}
                               title="Invoice"
                             >
                               <ReceiptText size={14} />
@@ -1863,7 +1862,7 @@ export default function Dashboard() {
                     const unit = formData.duration ? (formData.duration.split(" ")[1] || "Bulan") : "Bulan";
                     setFormData((prev) => ({ ...prev, duration: val ? `${val} ${unit}` : "" }));
                   }}
-                  placeholder="1"
+                  placeholder="0"
                   className="w-24 px-4 py-3 border border-slate-200 rounded-lg focus:border-black outline-none transition-all text-sm font-medium bg-[#FBFBFB]"
                 />
                 <select
@@ -1895,19 +1894,53 @@ export default function Dashboard() {
             </div>
 
             {/* Description */}
-            <div className="space-y-2">
+            <div className="space-y-3">
               <label className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
                 <AlignLeft size={14} />
-                Deskripsi Pekerjaan
+                Task list
               </label>
-              <textarea
-                name="description"
-                value={formData.description}
-                onChange={handleChange}
-                rows={5}
-                placeholder="Apa saja yang akan dikerjakan?"
-                className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:border-black outline-none transition-all text-sm font-medium bg-[#FBFBFB] resize-none"
-              />
+
+              <div className="space-y-2">
+                {(formData.description !== undefined && formData.description !== null ? String(formData.description) : "").split('\n').map((item, index, array) => (
+                  <div key={index} className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={item}
+                      onChange={(e) => {
+                        const newItems = [...array];
+                        newItems[index] = e.target.value;
+                        setFormData(prev => ({ ...prev, description: newItems.join('\n') }));
+                      }}
+                      placeholder="Apa saja yang akan dikerjakan?"
+                      className="flex-1 px-4 py-3 border border-slate-200 rounded-lg focus:border-black outline-none transition-all text-sm font-medium bg-[#FBFBFB]"
+                    />
+                    {array.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const newItems = array.filter((_, i) => i !== index);
+                          setFormData(prev => ({ ...prev, description: newItems.join('\n') }));
+                        }}
+                        className="p-3 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors shrink-0"
+                      >
+                        <Trash2 size={18} />
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  const currentDesc = formData.description !== undefined && formData.description !== null ? String(formData.description) : "";
+                  setFormData(prev => ({ ...prev, description: currentDesc + "\n" }));
+                }}
+                className="flex items-center gap-2 text-sm font-bold text-slate-500 hover:text-black transition-colors py-1"
+              >
+                <Plus size={16} />
+                Tambah Pekerjaan
+              </button>
             </div>
           </div>
         </div>
